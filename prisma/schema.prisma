@@ -1,0 +1,464 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Build order 1: Workspace → Product → Persona
+
+model Workspace {
+  id        String    @id @default(cuid())
+  name      String
+  createdAt DateTime  @default(now())
+  products  Product[]
+}
+
+model Product {
+  id                 String              @id @default(cuid())
+  workspaceId        String
+  name               String
+  description        String?
+  northStarMetricId  String?
+  workspace          Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  initiatives        Initiative[]
+  personas           Persona[]
+  metrics            Metric[]
+  okrs               OKR[]
+  releases           Release[]
+  stakeholderUpdates StakeholderUpdate[]
+}
+
+model Persona {
+  id           String      @id @default(cuid())
+  productId    String
+  name         String
+  description  String?
+  jobsToBeDone String      @default("[]")
+  product      Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  interviews   Interview[]
+}
+
+model Interview {
+  id            String    @id @default(cuid())
+  personaId     String
+  date          DateTime  @default(now())
+  notes         String?
+  transcriptRef String?
+  persona       Persona   @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  insights      Insight[]
+}
+
+model Insight {
+  id           String              @id @default(cuid())
+  interviewId  String
+  summary      String
+  tags         String              @default("[]")
+  confidence   String              @default("med")
+  interview    Interview           @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  initiatives  InsightInitiative[]
+  requirements Requirement[]
+  experiments  Experiment[]
+  meetingNotes MeetingNote[]
+}
+
+// Build order 8: Experiment (structured provenance for Insight validation,
+// and — since build order 10 — a research bet planned directly for an Initiative)
+
+model Experiment {
+  id            String  @id @default(cuid())
+  insightId     String? // optional: an initiative-first experiment has no Insight yet
+  initiativeId  String? // optional: set when planned directly against an Initiative
+  method        String // survey | jtbd_interview | ai_moderated_interview | usability_test |
+  // live_experiment | usage_analytics | session_replay | support_data | qual_corpus | market_research |
+  // data_analysis | secondary_research | fake_door_test
+  hypothesis    String?
+  successMetric String?
+  sampleSize    Int?
+  effectSize    Float?
+  result        String?
+  watchOut      String?
+  status        String   @default("planned") // "planned" | "running" | "completed"
+
+  // Build order 12: strategy-gate research types (questionnaire, data analysis,
+  // secondary research, fake-door test)
+  targetAudience  String? // questionnaire: who to survey
+  outreachDraft   String? // questionnaire message+questions, OR smoke-test landing/announcement copy
+  sentAt          DateTime? // when the PM sent the survey / published the smoke test
+  dataFileName    String? // data-analysis: uploaded file name
+  dataFileContent String? // data-analysis: raw CSV text
+  sources         String  @default("[]") // secondary-research: JSON [{url, title}]
+
+  // Build order 16: A/B testing — expose prototype versions to real testers
+  abTestVersionIds      String  @default("[]") // JSON string[] of PrototypeVersion ids in this test
+  abTestCustomQuestions String  @default("[]") // JSON string[] PM-added questions, beyond rating+comment
+  shareToken            String? @unique // public link token, set once the PM configures the test
+
+  // Build order 19: collaborative secondary research + survey completion
+  discussionThread String  @default("[]") // JSON {role: "pm"|"ai", content: string}[]
+  surveyResponses  String? // raw pasted survey responses, before AI synthesis
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  insight      Insight?      @relation(fields: [insightId], references: [id], onDelete: Cascade)
+  initiative   Initiative?   @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  requirements Requirement[]
+  feedback     PrototypeFeedback[]
+}
+
+// Build order 2: Initiative + RICE scoring
+
+model Initiative {
+  id               String              @id @default(cuid())
+  productId        String
+  name             String
+  problemStatement String?
+  hypothesis       String?
+  status           String              @default("idea")
+  riceReach        Float?
+  riceImpact       Float?
+  riceConfidence   Float?
+  riceEffort       Float?
+  riceScore        Float?
+
+  // Build order 10: research thinking-partner gate
+  researchGateStatus String  @default("undecided") // "undecided" | "needed" | "not_needed"
+  researchSkipReason String?
+
+  // Build order 11: strategy gate — does this initiative make sense to pursue?
+  strategyGateDecision  String    @default("pending") // "pending" | "proceed" | "pivot" | "kill"
+  strategyGateNote      String?
+  strategyGateDecidedBy String?
+  strategyGateDecidedAt DateTime?
+
+  // Build order 18: baselines — brownfield capture + enhancement-on-a-shipped-PRD
+  projectType          String       @default("greenfield") // "greenfield" | "brownfield"
+  baselineInitiativeId String?
+  baselineInitiative   Initiative?  @relation("InitiativeBaseline", fields: [baselineInitiativeId], references: [id], onDelete: SetNull)
+  enhancements         Initiative[] @relation("InitiativeBaseline")
+
+  // Build order 20: greenfield guided flow — non-mandatory steps skipped without a natural
+  // completion signal of their own (meetingNotes, brd)
+  skippedSteps String @default("[]") // JSON string[] — "meetingNotes" | "brd"
+
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  product          Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  features         Feature[]
+  okrs             OKRInitiative[]
+  insights         InsightInitiative[]
+  meetingNotes     MeetingNote[]
+  experiments      Experiment[]
+  researchMessages ResearchMessage[]
+  brdInputs        BrdInput[]
+  brd              BRD?
+  prototypeVersions PrototypeVersion[]
+  prd              PRD?
+}
+
+// Build order 9: MeetingNote (source capture, feeds the JTBD/Insight pipeline)
+
+model MeetingNote {
+  id         String  @id @default(cuid())
+  sourceType String // "gemini_notes" | "slack_thread" | "freetext"
+  link       String?
+  rawContent String  @default("")
+
+  meetingDate DateTime?
+  attendees   String    @default("[]") // JSON string[]
+
+  relevanceScore Float?
+  status         String @default("suggested") // "suggested" | "approved" | "rejected"
+
+  linkedInitiativeId String?
+  linkedInsightId    String?
+
+  geminiNotetakerEnabled String? // "yes" | "no" | "not_applicable"
+  addedBy                String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  linkedInitiative Initiative? @relation(fields: [linkedInitiativeId], references: [id])
+  linkedInsight    Insight?    @relation(fields: [linkedInsightId], references: [id])
+}
+
+// Build order 10: ResearchMessage (the thinking-partner planning thread, per Initiative)
+
+model ResearchMessage {
+  id                  String   @id @default(cuid())
+  initiativeId        String
+  role                String // "pm" | "ai"
+  content             String
+  proposedExperiments String   @default("[]") // JSON ProposedExperiment[] — "ai" turns only
+  createdAt           DateTime @default(now())
+
+  initiative Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+}
+
+// Build order 13: BrdInput — stakeholder input from functional teams, feeding the BRD
+
+model BrdInput {
+  id           String   @id @default(cuid())
+  initiativeId String
+  sourceTeam   String // "compliance" | "operations" | "finance" | "business" | "risk" | "data_science" | "product_manager"
+  channelType  String // "email_artifact" | "meeting_notes" | "formal_brd_doc" | "verbal_notes"
+  title        String?
+  content      String   @default("") // pasted text, or extracted from an uploaded file
+  link         String? // e.g. a Google Doc link (meeting notes) or a reference URL (email artifact) — stored, not fetched
+  fileName     String?
+  status       String   @default("suggested") // "suggested" | "approved" | "rejected"
+  addedBy      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  initiative Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+}
+
+// Build order 14: BRD — AI-drafted, PM-editable synthesis of Experiments + BrdInputs
+
+model BRD {
+  id           String   @id @default(cuid())
+  initiativeId String   @unique
+  content      String?
+  status       String   @default("draft")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  initiative Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+}
+
+// Build order 15: PrototypeVersion — AI-generated UI mocks or backend specs, seeded from
+// the BRD, Experiments, or a free PM prompt; each generation is its own comparable version
+
+model PrototypeVersion {
+  id            String   @id @default(cuid())
+  initiativeId  String
+  versionNumber Int
+  kind          String // "ui" | "backend" — the AI's own choice for this version
+  sourceMode    String // "brd" | "experiments" | "prompt" — what seeded this version
+  promptText    String? // what the PM typed (required for "prompt"; optional note otherwise)
+  content       String // full self-contained HTML (kind=ui) or markdown spec (kind=backend)
+  readabilityScore Float? // Flesch Reading Ease, computed once at creation for kind="ui"
+  createdAt     DateTime @default(now())
+
+  initiative Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  feedback   PrototypeFeedback[]
+}
+
+// Build order 16: PrototypeFeedback — per-tester A/B test responses, combining
+// self-reported feedback with behavior-derived metrics captured from the
+// sandboxed prototype iframe via postMessage.
+
+model PrototypeFeedback {
+  id               String   @id @default(cuid())
+  experimentId     String
+  shownVersionId   String
+  rating           Int?
+  comment          String?
+  customAnswers    String   @default("[]") // JSON [{question, answer}]
+  timeToCompleteMs Int?
+  interactionCount Int      @default(0)
+  completed        Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  experiment   Experiment       @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  shownVersion PrototypeVersion @relation(fields: [shownVersionId], references: [id], onDelete: Cascade)
+}
+
+model InsightInitiative {
+  insightId    String
+  initiativeId String
+  insight      Insight    @relation(fields: [insightId], references: [id], onDelete: Cascade)
+  initiative   Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+
+  @@id([insightId, initiativeId])
+}
+
+// Build order 4: Metrics + OKRs
+
+model Metric {
+  id           String  @id @default(cuid())
+  productId    String
+  name         String
+  type         String  @default("input")
+  currentValue Float?
+  targetValue  Float?
+  unit         String?
+  product      Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  okrs         OKR[]
+}
+
+model OKR {
+  id          String          @id @default(cuid())
+  productId   String
+  metricId    String?
+  objective   String
+  keyResults  String          @default("[]")
+  quarter     String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  product     Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  metric      Metric?         @relation(fields: [metricId], references: [id])
+  initiatives OKRInitiative[]
+}
+
+model OKRInitiative {
+  initiativeId String
+  okrId        String
+  initiative   Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  okr          OKR        @relation(fields: [okrId], references: [id], onDelete: Cascade)
+
+  @@id([initiativeId, okrId])
+}
+
+// Build order 3: Feature + PRD
+
+model Feature {
+  id           String           @id @default(cuid())
+  initiativeId String
+  name         String
+  status       String           @default("backlog")
+  kanoCategory String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  initiative   Initiative       @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  prd          PRD?
+  tasks        Task[]
+  releases     ReleaseFeature[]
+  requirements Requirement[]
+}
+
+// Build order 6: Requirement (regulated vs non-regulated workflow)
+
+model Requirement {
+  id        String @id @default(cuid())
+  featureId String
+
+  // Regime classification (see Regime Classifier wizard)
+  regime String @default("non_regulated") // "regulated" | "non_regulated"
+
+  requirementText    String
+  sourceProvenance   String? // citation (regulation/policy/precedent), or an auto-derived
+  // citation when sourceExperimentId is set — required for regulated past "draft"
+  sourceExperimentId String? // optional structured provenance: points at an Experiment
+  // instead of (or in addition to) a free-text sourceProvenance citation
+
+  ownerName String?
+
+  // sign_off { approved, by, date }
+  signOffApproved Boolean   @default(false)
+  signOffBy       String?
+  signOffDate     DateTime?
+
+  acceptanceCriteria String  @default("[]") // JSON string[]
+  edgeCases          String  @default("[]") // JSON string[]
+  riskIfWrong        String?
+
+  draftedBy String @default("human") // "ai" | "human"
+
+  // verified_by { name, date }
+  verifiedByName String?
+  verifiedByDate DateTime?
+
+  gateStatus String @default("draft") // "draft" | "verify" | "release"
+
+  linkedInsightId     String?
+  linkedPrototypeArea String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  feature          Feature      @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  linkedInsight    Insight?     @relation(fields: [linkedInsightId], references: [id])
+  sourceExperiment Experiment?  @relation(fields: [sourceExperimentId], references: [id])
+  auditTrail       AuditTrail[]
+}
+
+// Build order 7: Audit Trail (logs every gate transition)
+
+model AuditTrail {
+  id            String   @id @default(cuid())
+  requirementId String
+  actor         String // "ai" | human name
+  action        String // "drafted" | "flagged" | "verified" | "signed_off"
+  timestamp     DateTime @default(now())
+  note          String?
+
+  requirement Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+}
+
+model PRD {
+  id                 String   @id @default(cuid())
+  featureId          String?  @unique // legacy: feature-scoped PRD (Requirement-governance workflow)
+  initiativeId       String?  @unique // Build order 17: initiative-scoped PRD — pipeline's final deliverable
+  problem            String?
+  goals              String?
+  nonGoals           String?
+  userStories        String   @default("[]")
+  acceptanceCriteria String   @default("[]")
+  openQuestions      String   @default("[]")
+
+  content            String? // initiative-scoped: the full 8-section document, one markdown blob
+  stories            String  @default("[]") // initiative-scoped: JSON PrdStory[] — JIRA-ready breakdown
+  mergedIntoMaster   Boolean @default(false) // has this gap PRD been folded into its baseline's master PRD?
+
+  status             String   @default("draft")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  feature            Feature?    @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  initiative         Initiative? @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+}
+
+model Task {
+  id        String  @id @default(cuid())
+  featureId String
+  title     String
+  assignee  String?
+  status    String  @default("todo")
+  estimate  Float?
+  feature   Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+}
+
+// Build order 5: Release + Stakeholder Update
+
+model Release {
+  id                 String              @id @default(cuid())
+  productId          String
+  name               String
+  date               DateTime?
+  tier               String              @default("minor")
+  checklist          String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  product            Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  features           ReleaseFeature[]
+  stakeholderUpdates StakeholderUpdate[]
+}
+
+model ReleaseFeature {
+  releaseId String
+  featureId String
+  release   Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  feature   Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@id([releaseId, featureId])
+}
+
+model StakeholderUpdate {
+  id              String   @id @default(cuid())
+  productId       String
+  releaseId       String?
+  period          String
+  summary         String?
+  wins            String   @default("[]")
+  risks           String   @default("[]")
+  asks            String   @default("[]")
+  metricsSnapshot String   @default("{}")
+  createdAt       DateTime @default(now())
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  release         Release? @relation(fields: [releaseId], references: [id])
+}

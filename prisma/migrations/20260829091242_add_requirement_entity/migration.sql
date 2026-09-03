@@ -1,0 +1,25 @@
+-- CreateTable
+CREATE TABLE "Requirement" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "featureId" TEXT NOT NULL,
+    "regime" TEXT NOT NULL DEFAULT 'non_regulated',
+    "requirementText" TEXT NOT NULL,
+    "sourceProvenance" TEXT,
+    "ownerName" TEXT,
+    "signOffApproved" BOOLEAN NOT NULL DEFAULT false,
+    "signOffBy" TEXT,
+    "signOffDate" DATETIME,
+    "acceptanceCriteria" TEXT NOT NULL DEFAULT '[]',
+    "edgeCases" TEXT NOT NULL DEFAULT '[]',
+    "riskIfWrong" TEXT,
+    "draftedBy" TEXT NOT NULL DEFAULT 'human',
+    "verifiedByName" TEXT,
+    "verifiedByDate" DATETIME,
+    "gateStatus" TEXT NOT NULL DEFAULT 'draft',
+    "linkedInsightId" TEXT,
+    "linkedPrototypeArea" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "Requirement_featureId_fkey" FOREIGN KEY ("featureId") REFERENCES "Feature" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "Requirement_linkedInsightId_fkey" FOREIGN KEY ("linkedInsightId") REFERENCES "Insight" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
