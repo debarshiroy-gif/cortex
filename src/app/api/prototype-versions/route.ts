@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { streamText } from "@/lib/anthropic";
+import { streamText, type ModelChoice } from "@/lib/llm";
 import { frameworks } from "@/lib/frameworks";
 import { getInitiativeResearchFindings } from "@/lib/researchFindings";
 import { parsePrototypeReply } from "@/lib/prototypeParsing";
@@ -25,10 +25,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { initiativeId, sourceMode, promptText } = body as {
+  const { initiativeId, sourceMode, promptText, model } = body as {
     initiativeId?: string;
     sourceMode?: string;
     promptText?: string;
+    model?: ModelChoice;
   };
 
   if (!initiativeId || !sourceMode) {
@@ -121,7 +122,7 @@ ${baselinePrd.content}
   }
 
   const userMessage = sections.join("\n\n");
-  const raw = await streamText(frameworks.prototypeGeneration(), userMessage, 16000);
+  const raw = await streamText(frameworks.prototypeGeneration(), userMessage, 16000, model);
 
   let parsed;
   try {

@@ -118,7 +118,7 @@ export function CommitExperimentForm({
       />
       {error && <p style={{ color: "var(--danger)", fontSize: 12 }}>{error}</p>}
       <div style={{ display: "flex", gap: 8 }}>
-        <button className="btn-primary" style={{ fontSize: 12 }} onClick={commit} disabled={saving}>
+        <button className="btn-success" style={{ fontSize: 12 }} onClick={commit} disabled={saving}>
           {saving ? "Committing…" : "Commit this experiment"}
         </button>
         <button className="btn-ghost" style={{ fontSize: 12 }} onClick={onCancel} disabled={saving}>

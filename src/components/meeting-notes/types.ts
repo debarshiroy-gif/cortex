@@ -15,6 +15,7 @@ export interface MeetingNote {
   linkedInsightId: string | null;
   geminiNotetakerEnabled: NotetakerEnabled | null;
   addedBy: string | null;
+  consideredInBrdAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

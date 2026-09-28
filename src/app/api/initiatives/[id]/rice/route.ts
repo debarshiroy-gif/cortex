@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { streamText } from "@/lib/anthropic";
+import { streamText, type ModelChoice } from "@/lib/llm";
 import { frameworks } from "@/lib/frameworks";
 
 export async function POST(
@@ -9,7 +9,13 @@ export async function POST(
 ) {
   const { id } = await params;
   const body = await request.json();
-  const { reach, impact, confidence, effort } = body;
+  const { reach, impact, confidence, effort, model } = body as {
+    reach?: number;
+    impact?: number;
+    confidence?: number;
+    effort?: number;
+    model?: ModelChoice;
+  };
 
   if (
     reach == null ||
@@ -74,7 +80,7 @@ The initiative just scored is "${initiative.name}" with:
 Provide a 2–3 sentence interpretation: where it ranks, whether confidence warrants validation first, and what the score implies for prioritization.
   `.trim();
 
-  const analysis = await streamText(systemPrompt, userMessage);
+  const analysis = await streamText(systemPrompt, userMessage, undefined, model);
 
   return NextResponse.json({ initiative, score, analysis });
 }

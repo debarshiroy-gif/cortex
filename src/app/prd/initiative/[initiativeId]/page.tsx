@@ -9,6 +9,8 @@ import type { ResearchExperiment } from "@/components/research/types";
 import { useGreenfieldFlow } from "@/components/flow/useGreenfieldFlow";
 import { GreenfieldFlowBar } from "@/components/flow/GreenfieldFlowBar";
 import { FlowStepFooter } from "@/components/flow/FlowStepFooter";
+import { ModelChoiceSelect } from "@/components/ModelChoiceSelect";
+import { useModelChoice } from "@/lib/useModelChoice";
 
 interface InitiativeHeader {
   id: string;
@@ -47,6 +49,7 @@ export default function PrdInitiativePage() {
   const [draftContent, setDraftContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modelChoice, setModelChoice] = useModelChoice();
   const { flow, refresh: refreshFlow } = useGreenfieldFlow(initiativeId);
 
   useEffect(() => {
@@ -97,7 +100,7 @@ export default function PrdInitiativePage() {
     const res = await fetch("/api/prd/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ initiativeId }),
+      body: JSON.stringify({ initiativeId, model: modelChoice }),
     });
     setGenerating(false);
     if (!res.ok) {
@@ -129,7 +132,11 @@ export default function PrdInitiativePage() {
     if (!prd) return;
     setMerging(true);
     setMergeError(null);
-    const res = await fetch(`/api/prd/${prd.id}/merge-into-master`, { method: "POST" });
+    const res = await fetch(`/api/prd/${prd.id}/merge-into-master`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: modelChoice }),
+    });
     setMerging(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -191,7 +198,10 @@ export default function PrdInitiativePage() {
             <h2 style={{ fontSize: 15, fontWeight: 600 }}>Document</h2>
             {prd && <span className={`badge badge-${prd.status}`}>{prd.status}</span>}
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {prd?.content && !editing && (
+              <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={generating || merging} />
+            )}
             {prd?.content && !editing && (
               <button
                 className="btn-ghost"
@@ -248,9 +258,12 @@ export default function PrdInitiativePage() {
               No draft yet. Cortex will pull in the BRD, validation findings, and any prototypes
               built so far.
             </p>
-            <button className="btn-primary" onClick={generate} disabled={generating}>
-              {generating ? "Generating…" : "Generate PRD"}
-            </button>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={generating} />
+              <button className="btn-primary" onClick={generate} disabled={generating}>
+                {generating ? "Generating…" : "Generate PRD"}
+              </button>
+            </div>
           </div>
         )}
 

@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { streamText } from "@/lib/anthropic";
+import { streamText, type ModelChoice } from "@/lib/llm";
 import { frameworks } from "@/lib/frameworks";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const body = await request.json().catch(() => ({}));
+  const { model } = body as { model?: ModelChoice };
 
   const release = await prisma.release.findUnique({
     where: { id },
@@ -61,7 +63,7 @@ ${featureLines.length > 0 ? featureLines.join("\n") : "No features linked yet."}
 
 Generate a launch checklist for this ${release.tier} release. Use the actual feature names above — no placeholders. Scope the checklist to the tier (major releases need more gates than patch releases).`;
 
-  const raw = await streamText(systemPrompt, userMessage);
+  const raw = await streamText(systemPrompt, userMessage, undefined, model);
   const checklist = raw
     .replace(/^```\w*\s*/m, "")
     .replace(/\s*```$/m, "")

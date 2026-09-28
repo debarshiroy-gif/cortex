@@ -10,7 +10,7 @@ interface PrdStoryListProps {
 }
 
 function emptyStory(): PrdStory {
-  return { title: "", description: "", acceptanceCriteria: [""] };
+  return { title: "", persona: "", description: "", acceptanceCriteria: [""] };
 }
 
 export function PrdStoryList({ prdId, initialStories, onSaved }: PrdStoryListProps) {
@@ -60,11 +60,25 @@ export function PrdStoryList({ prdId, initialStories, onSaved }: PrdStoryListPro
 
   async function save() {
     setSaving(true);
+    const survivingTitles = new Set(
+      stories.map((s) => s.title.trim()).filter(Boolean)
+    );
     const cleaned = stories
-      .map((s) => ({
-        ...s,
-        acceptanceCriteria: s.acceptanceCriteria.map((c) => c.trim()).filter(Boolean),
-      }))
+      .map((s) => {
+        const title = s.title.trim();
+        const linkedStoryTitles = (s.linkedStoryTitles ?? []).filter(
+          (t) => t !== title && survivingTitles.has(t)
+        );
+        return {
+          ...s,
+          background: s.background?.trim() || undefined,
+          linkedStoryTitles: linkedStoryTitles.length > 0 ? linkedStoryTitles : undefined,
+          logic: s.logic?.trim() || undefined,
+          mapping: s.mapping?.trim() || undefined,
+          uiScreens: s.uiScreens?.trim() || undefined,
+          acceptanceCriteria: s.acceptanceCriteria.map((c) => c.trim()).filter(Boolean),
+        };
+      })
       .filter((s) => s.title.trim());
     const res = await fetch(`/api/prd/${prdId}`, {
       method: "PATCH",
@@ -111,18 +125,107 @@ export function PrdStoryList({ prdId, initialStories, onSaved }: PrdStoryListPro
                     value={story.title}
                     onChange={(e) => updateStory(i, { title: e.target.value })}
                   />
-                  <textarea
-                    rows={3}
-                    placeholder="Description"
-                    value={story.description}
-                    onChange={(e) => updateStory(i, { description: e.target.value })}
-                  />
+                  <div>
+                    <label style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginBottom: 2 }}>
+                      On whose behalf (e.g. &quot;Operations Manager of Credit Saison&quot;)
+                    </label>
+                    <input
+                      placeholder="Persona / role"
+                      value={story.persona}
+                      onChange={(e) => updateStory(i, { persona: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginBottom: 2 }}>
+                      Background (optional) — context from the PRD (the future Epic)
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="e.g. From Background and Context: ..."
+                      value={story.background ?? ""}
+                      onChange={(e) => updateStory(i, { background: e.target.value || undefined })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginBottom: 2 }}>
+                      Linked stories (optional) — other stories in this PRD it depends on
+                    </label>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      {stories
+                        .map((s, si) => ({ title: s.title, si }))
+                        .filter(({ si }) => si !== i)
+                        .map(({ title, si }) => (
+                          <label key={si} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+                            <input
+                              type="checkbox"
+                              style={{ width: "auto" }}
+                              checked={(story.linkedStoryTitles ?? []).includes(title)}
+                              onChange={(e) => {
+                                const current = story.linkedStoryTitles ?? [];
+                                const next = e.target.checked
+                                  ? [...current, title]
+                                  : current.filter((t) => t !== title);
+                                updateStory(i, { linkedStoryTitles: next.length > 0 ? next : undefined });
+                              }}
+                            />
+                            {title || "(untitled story)"}
+                          </label>
+                        ))}
+                      {stories.length <= 1 && (
+                        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>No other stories yet.</span>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginBottom: 2 }}>
+                      Description — start with &quot;As a &lt;persona&gt;, I want to…, so that…&quot;
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="Description"
+                      value={story.description}
+                      onChange={(e) => updateStory(i, { description: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginBottom: 2 }}>
+                      Business / transformation logic (optional)
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="Business rules, validation, calculations involved…"
+                      value={story.logic ?? ""}
+                      onChange={(e) => updateStory(i, { logic: e.target.value || undefined })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginBottom: 2 }}>
+                      Mapping document (optional) — which data/column goes where
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="e.g. source.customer_email -> CRM.contact.email"
+                      value={story.mapping ?? ""}
+                      onChange={(e) => updateStory(i, { mapping: e.target.value || undefined })}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginBottom: 2 }}>
+                      UI screens (optional) — which screen, and which part of it
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="e.g. Checkout screen — the payment method selector"
+                      value={story.uiScreens ?? ""}
+                      onChange={(e) => updateStory(i, { uiScreens: e.target.value || undefined })}
+                    />
+                  </div>
                   <input
                     placeholder="Phase (optional)"
                     value={story.phase ?? ""}
                     onChange={(e) => updateStory(i, { phase: e.target.value || undefined })}
                   />
-                  <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Acceptance criteria</div>
+                  <div style={{ fontSize: 12, fontWeight: 600 }}>Acceptance Criteria</div>
                   {story.acceptanceCriteria.map((c, ci) => (
                     <div key={ci} style={{ display: "flex", gap: 6 }}>
                       <input
@@ -163,18 +266,67 @@ export function PrdStoryList({ prdId, initialStories, onSaved }: PrdStoryListPro
                           </span>
                         )}
                       </div>
+                      {story.persona && (
+                        <p style={{ fontSize: 11, color: "var(--accent)", marginTop: 4 }}>
+                          As a {story.persona}…
+                        </p>
+                      )}
                       <p style={{ fontSize: 12, marginTop: 4 }}>{story.description}</p>
                     </div>
                     <button className="btn-ghost" style={{ fontSize: 11 }} onClick={() => setEditingIndex(i)}>
                       Edit
                     </button>
                   </div>
-                  {story.acceptanceCriteria.length > 0 && (
-                    <ul style={{ fontSize: 12, marginTop: 8, paddingLeft: 18 }}>
-                      {story.acceptanceCriteria.map((c, ci) => (
-                        <li key={ci}>{c}</li>
+
+                  {story.background && (
+                    <p style={{ fontSize: 12, marginTop: 8 }}>
+                      <strong>Background:</strong> {story.background}
+                    </p>
+                  )}
+                  {story.linkedStoryTitles && story.linkedStoryTitles.length > 0 && (
+                    <div style={{ marginTop: 8, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                      <strong style={{ fontSize: 12 }}>Linked stories:</strong>
+                      {story.linkedStoryTitles.map((t, ti) => (
+                        <span
+                          key={ti}
+                          style={{
+                            fontSize: 11,
+                            padding: "1px 8px",
+                            borderRadius: 99,
+                            background: "var(--surface)",
+                            border: "1px solid var(--border)",
+                          }}
+                        >
+                          {t}
+                        </span>
                       ))}
-                    </ul>
+                    </div>
+                  )}
+                  {story.logic && (
+                    <p style={{ fontSize: 12, marginTop: 8 }}>
+                      <strong>Logic:</strong> {story.logic}
+                    </p>
+                  )}
+                  {story.mapping && (
+                    <p style={{ fontSize: 12, marginTop: 8, whiteSpace: "pre-wrap" }}>
+                      <strong>Mapping:</strong> {story.mapping}
+                    </p>
+                  )}
+                  {story.uiScreens && (
+                    <p style={{ fontSize: 12, marginTop: 8 }}>
+                      <strong>UI screens:</strong> {story.uiScreens}
+                    </p>
+                  )}
+
+                  {story.acceptanceCriteria.length > 0 && (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600 }}>Acceptance Criteria</div>
+                      <ul style={{ fontSize: 12, marginTop: 4, paddingLeft: 18 }}>
+                        {story.acceptanceCriteria.map((c, ci) => (
+                          <li key={ci}>{c}</li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
               )}

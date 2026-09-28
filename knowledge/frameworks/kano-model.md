@@ -8,7 +8,7 @@ Classifies features by how they affect satisfaction:
 - **Indifferent**: users don't care either way.
 - **Reverse**: some users are actively annoyed by it.
 
-## How Claude should use this
+## How AI should use this
 When reviewing a backlog, tag each feature with a Kano category based on the problem statement and user context, and flag if the roadmap is too skewed toward one category (e.g., all must-be = safe but boring; all delighters = risky, may be missing basics).
 
 ## Prompt pattern

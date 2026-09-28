@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { ResearchExperiment } from "./types";
+import { ModelChoiceSelect } from "@/components/ModelChoiceSelect";
+import { useModelChoice } from "@/lib/useModelChoice";
 
 interface DiscussionTurn {
   role: "pm" | "ai";
@@ -27,6 +29,7 @@ export function DiscussionThread({ experiment, onUpdated, label }: DiscussionThr
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modelChoice, setModelChoice] = useModelChoice();
 
   const thread = parseThread(experiment.discussionThread);
 
@@ -36,7 +39,7 @@ export function DiscussionThread({ experiment, onUpdated, label }: DiscussionThr
     const res = await fetch(`/api/experiments/${experiment.id}/discuss`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(content ? { content } : {}),
+      body: JSON.stringify({ ...(content ? { content } : {}), model: modelChoice }),
     });
     setSending(false);
     if (!res.ok) {
@@ -51,9 +54,12 @@ export function DiscussionThread({ experiment, onUpdated, label }: DiscussionThr
   if (thread.length === 0) {
     return (
       <div style={{ marginTop: 8 }}>
-        <button className="btn-ghost" style={{ fontSize: 12 }} onClick={() => send()} disabled={sending}>
-          {sending ? "Thinking…" : label ?? "Discuss with AI"}
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={sending} />
+          <button className="btn-ghost" style={{ fontSize: 12 }} onClick={() => send()} disabled={sending}>
+            {sending ? "Thinking…" : label ?? "Discuss with AI"}
+          </button>
+        </div>
         {error && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>{error}</p>}
       </div>
     );
@@ -88,7 +94,8 @@ export function DiscussionThread({ experiment, onUpdated, label }: DiscussionThr
 
       {error && <p style={{ color: "var(--danger)", fontSize: 12 }}>{error}</p>}
 
-      <div style={{ display: "flex", gap: 6 }}>
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={sending} />
         <input
           placeholder="Reply…"
           value={draft}

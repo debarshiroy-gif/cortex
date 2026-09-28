@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { streamText } from "@/lib/anthropic";
+import { streamText, type ModelChoice } from "@/lib/llm";
 import { frameworks } from "@/lib/frameworks";
 
 type KeyResult = {
@@ -24,9 +24,10 @@ export async function POST(
   await params; // OKR id available if needed for DB write-back
 
   const body = await request.json();
-  const { objective, keyResults } = body as {
+  const { objective, keyResults, model } = body as {
     objective: string;
     keyResults: KeyResult[];
+    model?: ModelChoice;
   };
 
   if (!objective || !Array.isArray(keyResults) || keyResults.length === 0) {
@@ -67,16 +68,16 @@ Respond in this exact JSON format (no markdown fences):
 }
 `.trim();
 
-  const raw = await streamText(systemPrompt, userMessage);
+  const raw = await streamText(systemPrompt, userMessage, undefined, model);
 
   let parsed: { results: KRAnalysis[]; summary: string };
   try {
-    // Strip any accidental markdown fences Claude might add
+    // Strip any accidental markdown fences AI might add
     const cleaned = raw.replace(/^```json\s*/m, "").replace(/\s*```$/m, "").trim();
     parsed = JSON.parse(cleaned);
   } catch {
     return NextResponse.json(
-      { error: "Failed to parse Claude response", raw },
+      { error: "Failed to parse AI response", raw },
       { status: 502 }
     );
   }

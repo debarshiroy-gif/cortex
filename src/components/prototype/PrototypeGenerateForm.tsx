@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { PrototypeSourceMode, PrototypeVersion } from "./types";
+import { ModelChoiceSelect } from "@/components/ModelChoiceSelect";
+import { useModelChoice } from "@/lib/useModelChoice";
 
 interface PrototypeGenerateFormProps {
   initiativeId: string;
@@ -17,6 +19,7 @@ export function PrototypeGenerateForm({
   const [promptText, setPromptText] = useState("");
   const [generating, setGenerating] = useState<PrototypeSourceMode | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [modelChoice, setModelChoice] = useModelChoice();
 
   async function generate(sourceMode: PrototypeSourceMode) {
     if (sourceMode === "prompt" && !promptText.trim()) {
@@ -33,6 +36,7 @@ export function PrototypeGenerateForm({
         initiativeId,
         sourceMode,
         promptText: promptText.trim() || undefined,
+        model: modelChoice,
       }),
     });
     setGenerating(null);
@@ -54,7 +58,8 @@ export function PrototypeGenerateForm({
         generates until you choose an action below.
       </p>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center" }}>
+        <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={generating !== null} />
         <button
           className="btn-ghost"
           style={{ fontSize: 12 }}

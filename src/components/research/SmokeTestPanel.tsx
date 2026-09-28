@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { ResearchExperiment } from "./types";
+import { ModelChoiceSelect } from "@/components/ModelChoiceSelect";
+import { useModelChoice } from "@/lib/useModelChoice";
 
 interface SmokeTestPanelProps {
   experiment: ResearchExperiment;
@@ -12,20 +14,28 @@ export function SmokeTestPanel({ experiment, onUpdated }: SmokeTestPanelProps) {
   const [drafting, setDrafting] = useState(false);
   const [marking, setMarking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modelChoice, setModelChoice] = useModelChoice();
 
   async function draft() {
     setDrafting(true);
     setError(null);
-    const res = await fetch(`/api/experiments/${experiment.id}/draft-outreach`, {
-      method: "POST",
-    });
-    setDrafting(false);
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Failed to draft landing copy");
-      return;
+    try {
+      const res = await fetch(`/api/experiments/${experiment.id}/draft-outreach`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: modelChoice }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Failed to draft landing copy");
+        return;
+      }
+      onUpdated((await res.json()) as ResearchExperiment);
+    } catch {
+      setError("Could not reach Cortex. Check the server and try again.");
+    } finally {
+      setDrafting(false);
     }
-    onUpdated((await res.json()) as ResearchExperiment);
   }
 
   async function markPublished() {
@@ -42,9 +52,12 @@ export function SmokeTestPanel({ experiment, onUpdated }: SmokeTestPanelProps) {
   if (!experiment.outreachDraft) {
     return (
       <div style={{ marginTop: 8 }}>
-        <button className="btn-ghost" style={{ fontSize: 12 }} onClick={draft} disabled={drafting}>
-          {drafting ? "Drafting…" : "Draft landing copy with AI"}
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={drafting} />
+          <button className="btn-ghost" style={{ fontSize: 12 }} onClick={draft} disabled={drafting}>
+            {drafting ? "Drafting…" : "Draft landing copy with AI"}
+          </button>
+        </div>
         {error && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>{error}</p>}
       </div>
     );

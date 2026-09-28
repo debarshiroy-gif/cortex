@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { streamText } from "@/lib/anthropic";
+import { streamText, type ModelChoice } from "@/lib/llm";
 import { frameworks } from "@/lib/frameworks";
-import { getInitiativeResearchFindings } from "@/lib/researchFindings";
+import { getInitiativeResearchExperiments } from "@/lib/researchFindings";
+import { formatExperimentCitation } from "@/lib/experimentCitation";
 
 const SOURCE_TEAM_LABEL: Record<string, string> = {
   compliance: "Compliance",
@@ -16,7 +17,7 @@ const SOURCE_TEAM_LABEL: Record<string, string> = {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { initiativeId } = body as { initiativeId?: string };
+  const { initiativeId, model } = body as { initiativeId?: string; model?: ModelChoice };
 
   if (!initiativeId) {
     return NextResponse.json({ error: "initiativeId is required" }, { status: 400 });
@@ -45,11 +46,12 @@ ${baselinePrd.content}
     }
   }
 
-  const [findings, approvedInputs, approvedMeetingNotes] = await Promise.all([
-    getInitiativeResearchFindings(initiativeId),
+  const [experiments, approvedInputs, approvedMeetingNotes] = await Promise.all([
+    getInitiativeResearchExperiments(initiativeId),
     prisma.brdInput.findMany({ where: { initiativeId, status: "approved" } }),
     prisma.meetingNote.findMany({ where: { linkedInitiativeId: initiativeId, status: "approved" } }),
   ]);
+  const findings = experiments.map(formatExperimentCitation);
 
   const inputsByTeam = approvedInputs.reduce<Record<string, typeof approvedInputs>>((acc, i) => {
     (acc[i.sourceTeam] ??= []).push(i);
@@ -92,13 +94,37 @@ ${
 Draft the BRD as instructed.
   `.trim();
 
-  const content = await streamText(systemPrompt, userMessage, 8192);
+  const content = await streamText(systemPrompt, userMessage, 8192, model);
 
-  const brd = await prisma.bRD.upsert({
-    where: { initiativeId },
-    update: { content, status: "draft", updatedAt: new Date() },
-    create: { initiativeId, content, status: "draft" },
-  });
+  const consideredAt = new Date();
+
+  const [brd] = await Promise.all([
+    prisma.bRD.upsert({
+      where: { initiativeId },
+      update: { content, status: "draft", updatedAt: new Date() },
+      create: { initiativeId, content, status: "draft" },
+    }),
+    prisma.brdInput.updateMany({
+      where: { id: { in: approvedInputs.map((i) => i.id) } },
+      data: { consideredInBrdAt: consideredAt },
+    }),
+    prisma.meetingNote.updateMany({
+      where: { id: { in: approvedMeetingNotes.map((n) => n.id) } },
+      data: { consideredInBrdAt: consideredAt },
+    }),
+    prisma.experiment.updateMany({
+      where: { id: { in: experiments.map((e) => e.id) } },
+      data: { consideredInBrdAt: consideredAt },
+    }),
+    ...(initiative.strategyGateDecision !== "pending"
+      ? [
+          prisma.initiative.update({
+            where: { id: initiativeId },
+            data: { strategyGateConsideredInBrdAt: consideredAt },
+          }),
+        ]
+      : []),
+  ]);
 
   return NextResponse.json(brd);
 }

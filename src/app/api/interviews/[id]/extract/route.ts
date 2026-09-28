@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { streamText } from "@/lib/anthropic";
+import { DEFAULT_MODEL_CHOICE, llmErrorMessage, streamText, type ModelChoice } from "@/lib/llm";
 import { frameworks } from "@/lib/frameworks";
 
 type ExtractedJob = {
@@ -13,10 +13,12 @@ type ExtractedJob = {
 };
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const body = await request.json().catch(() => ({}));
+  const { model } = body as { model?: ModelChoice };
 
   const interview = await prisma.interview.findUnique({
     where: { id },
@@ -56,7 +58,17 @@ Respond in this exact JSON format (no markdown fences):
 }
 `.trim();
 
-  const raw = await streamText(systemPrompt, userMessage);
+  const modelChoice = model ?? DEFAULT_MODEL_CHOICE;
+  let raw: string;
+  try {
+    raw = await streamText(systemPrompt, userMessage, undefined, modelChoice);
+  } catch (error) {
+    console.error("JTBD extraction model request failed", error);
+    return NextResponse.json(
+      { error: llmErrorMessage(error, modelChoice) },
+      { status: 502 }
+    );
+  }
 
   let parsed: { jobStatements: ExtractedJob[] };
   try {
@@ -64,7 +76,7 @@ Respond in this exact JSON format (no markdown fences):
     parsed = JSON.parse(cleaned);
   } catch {
     return NextResponse.json(
-      { error: "Failed to parse Claude response", raw },
+      { error: "Failed to parse AI response", raw },
       { status: 502 }
     );
   }

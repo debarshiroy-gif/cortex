@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { streamText } from "@/lib/anthropic";
+import { streamText, type ModelChoice } from "@/lib/llm";
 import { frameworks } from "@/lib/frameworks";
 import { recordAuditEvent } from "@/lib/auditTrail";
 
@@ -12,10 +12,12 @@ interface ConsistencyCheck {
 }
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const body = await request.json().catch(() => ({}));
+  const { model } = body as { model?: ModelChoice };
 
   const requirement = await prisma.requirement.findUnique({ where: { id } });
   if (!requirement) {
@@ -57,7 +59,7 @@ export async function POST(
     );
   }
 
-  // Internal consistency: ask Claude whether the acceptance criteria and edge
+  // Internal consistency: ask AI whether the acceptance criteria and edge
   // cases actually match the requirement text.
   const systemPrompt = frameworks.requirementGates();
   const userMessage = `
@@ -76,7 +78,7 @@ markdown fences):
 }
 `.trim();
 
-  const raw = await streamText(systemPrompt, userMessage);
+  const raw = await streamText(systemPrompt, userMessage, undefined, model);
   try {
     const cleaned = raw.replace(/^```json\s*/m, "").replace(/\s*```$/m, "").trim();
     const parsed = JSON.parse(cleaned) as ConsistencyCheck;

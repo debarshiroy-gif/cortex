@@ -1,10 +1,10 @@
 # Three-Gate Requirement Workflow
 
 Every Requirement moves through three gates: **draft → verify → release**. Each gate
-splits the work between what Claude does and what a human must own — Claude never
+splits the work between what AI does and what a human must own — AI never
 completes a gate transition on its own; a human always makes the call.
 
-| Gate | Claude does | Human owns |
+| Gate | AI does | Human owns |
 |---|---|---|
 | **Draft** | Turns expert interview/source text into atomic requirements; generates edge cases; flags vague or untestable acceptance criteria | Chooses which sources are authoritative; supplies the actual rules |
 | **Verify** | Flags unverified, inconsistent, or stale requirements; checks internal traceability | Checks each requirement against the real regulation; signs the row (name + date) |
@@ -35,8 +35,8 @@ A requirement is traceable when an auditor could follow it back to evidence: a c
 source_provenance, a linked_insight_id, or a linked_prototype_area. A requirement with
 none of these has no paper trail.
 
-## What Claude must never do
+## What AI must never do
 
-Claude drafts, flags, and checks. Claude never signs off, never certifies, and never
+AI drafts, flags, and checks. AI never signs off, never certifies, and never
 marks a requirement verified on a human's behalf. Every gate advance is a human action;
-Claude's checks only inform that decision.
+AI's checks only inform that decision.

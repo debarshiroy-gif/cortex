@@ -16,7 +16,7 @@
 6. **Open Questions** — unresolved items, with which team should answer each one.
 7. **Risks** — what could go wrong, and which stakeholder input or evidence gap it traces to.
 
-## How Claude should use this
+## How AI should use this
 Given an Initiative's context, its strategy-gate experiment findings, and its approved
 stakeholder inputs (each tagged with the team it came from), draft a full BRD in this
 structure. Preserve source attribution explicitly — a reader should be able to tell which

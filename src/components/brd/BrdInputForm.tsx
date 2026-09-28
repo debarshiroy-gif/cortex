@@ -112,47 +112,37 @@ export function BrdInputForm({ initiativeId, onCreated }: BrdInputFormProps) {
           </div>
         </div>
 
-        {channelType !== "verbal_notes" && (
-          <div>
-            <label style={{ display: "block", fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>
-              Attach a file {channelType === "formal_brd_doc" ? "" : "(optional)"} — PDF or .txt
-            </label>
-            <input
-              type="file"
-              accept=".pdf,.txt,.md"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            />
-          </div>
-        )}
-
-        {(channelType === "email_artifact" || channelType === "meeting_notes") && (
-          <div>
-            <label style={{ display: "block", fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>
-              {channelType === "meeting_notes" ? "Google Doc link (optional)" : "Reference link (optional)"}
-            </label>
-            <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" />
-            {channelType === "meeting_notes" && (
-              <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-                We store the link but don&apos;t fetch it yet — paste the notes below too, or attach
-                the exported doc.
-              </p>
-            )}
-          </div>
-        )}
+        <div>
+          <label style={{ display: "block", fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>
+            Attach a file (optional) — PDF or .txt
+          </label>
+          <input
+            type="file"
+            accept=".pdf,.txt,.md"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          />
+        </div>
 
         <div>
           <label style={{ display: "block", fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>
-            {channelType === "verbal_notes" ? "What was said" : "Content (optional if a file is attached)"}
+            Reference link (optional) — e.g. a Google Doc for meeting notes
+          </label>
+          <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" />
+          <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+            We store the link but don&apos;t fetch it yet — paste or attach the actual content
+            below too.
+          </p>
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>
+            Content (optional if a file is attached)
           </label>
           <textarea
-            rows={channelType === "verbal_notes" ? 6 : 4}
+            rows={6}
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder={
-              channelType === "verbal_notes"
-                ? "Summarize the verbal communication or your own notes…"
-                : "Paste content here…"
-            }
+            placeholder="Paste content, or a summary of what was said/agreed…"
           />
         </div>
 

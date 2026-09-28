@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { streamText } from "@/lib/anthropic";
+import {
+  DEFAULT_MODEL_CHOICE,
+  isModelChoice,
+  llmErrorMessage,
+  streamText,
+} from "@/lib/llm";
 import { frameworks } from "@/lib/frameworks";
 
 interface DraftReply {
@@ -9,10 +14,16 @@ interface DraftReply {
 }
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const body = await request.json().catch(() => ({}));
+  const requestedModel = (body as { model?: unknown }).model;
+  if (requestedModel !== undefined && !isModelChoice(requestedModel)) {
+    return NextResponse.json({ error: "Unsupported model selection" }, { status: 400 });
+  }
+  const model = requestedModel ?? DEFAULT_MODEL_CHOICE;
 
   const experiment = await prisma.experiment.findUnique({
     where: { id },
@@ -53,7 +64,17 @@ ${discussionSection}
 Draft the material for this method as instructed.
   `.trim();
 
-  const raw = await streamText(systemPrompt, userMessage);
+  let raw: string;
+  try {
+    raw = await streamText(systemPrompt, userMessage, undefined, model);
+  } catch (error) {
+    const status =
+      typeof error === "object" && error !== null && "status" in error
+        ? (error as { status?: unknown }).status
+        : "unknown";
+    console.error(`Landing-copy model request failed (${model}, status ${String(status)})`);
+    return NextResponse.json({ error: llmErrorMessage(error, model) }, { status: 502 });
+  }
 
   let parsed: DraftReply;
   try {
@@ -61,7 +82,7 @@ Draft the material for this method as instructed.
     parsed = JSON.parse(cleaned);
   } catch {
     return NextResponse.json(
-      { error: "Failed to parse Claude response", raw },
+      { error: "Failed to parse AI response", raw },
       { status: 502 }
     );
   }

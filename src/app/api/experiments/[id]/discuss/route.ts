@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { streamChat, type ChatMessage } from "@/lib/anthropic";
+import { streamChat, type ChatMessage, type ModelChoice } from "@/lib/llm";
 import { frameworks } from "@/lib/frameworks";
 
 interface DiscussionTurn {
@@ -23,7 +23,7 @@ export async function POST(
 ) {
   const { id } = await params;
   const body = await request.json().catch(() => ({}));
-  const { content } = body as { content?: string };
+  const { content, model } = body as { content?: string; model?: ModelChoice };
 
   const experiment = await prisma.experiment.findUnique({
     where: { id },
@@ -66,7 +66,7 @@ export async function POST(
       ? priorTurns
       : [{ role: "user", content: "Let's start the discussion." }];
 
-  const reply = await streamChat(systemPrompt, messages);
+  const reply = await streamChat(systemPrompt, messages, undefined, model);
 
   const updatedThread: DiscussionTurn[] = [
     ...thread,

@@ -103,7 +103,15 @@ export default function ResearchPlanPage() {
         }}
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 24, marginTop: 24 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 24,
+          marginTop: 24,
+          alignItems: "start",
+        }}
+      >
         <div>
           <ResearchThread
             initiativeId={initiative.id}
@@ -114,8 +122,11 @@ export default function ResearchPlanPage() {
           />
         </div>
 
-        <div className="card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div
+          className="card"
+          style={{ position: "sticky", top: 24, maxHeight: "calc(100vh - 48px)", display: "flex", flexDirection: "column" }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexShrink: 0 }}>
             <h2 style={{ fontSize: 15, fontWeight: 600 }}>Committed experiments</h2>
             {!showManualForm && (
               <button
@@ -138,7 +149,7 @@ export default function ResearchPlanPage() {
             />
           )}
 
-          <div style={{ marginTop: showManualForm ? 16 : 0 }}>
+          <div style={{ marginTop: showManualForm ? 16 : 0, overflowY: "auto" }}>
             <CommittedExperimentsList
               experiments={initiative.experiments}
               onUpdated={handleExperimentUpdated}

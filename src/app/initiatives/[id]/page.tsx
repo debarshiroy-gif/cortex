@@ -8,6 +8,8 @@ import { BrdInputsBanner } from "@/components/brd/BrdInputsBanner";
 import { useGreenfieldFlow } from "@/components/flow/useGreenfieldFlow";
 import { GreenfieldFlowBar } from "@/components/flow/GreenfieldFlowBar";
 import { FlowStepFooter } from "@/components/flow/FlowStepFooter";
+import { ModelChoiceSelect } from "@/components/ModelChoiceSelect";
+import { useModelChoice } from "@/lib/useModelChoice";
 import type {
   ResearchExperiment,
   ResearchGateStatus,
@@ -38,6 +40,7 @@ type Initiative = {
   strategyGateNote: string | null;
   strategyGateDecidedBy: string | null;
   strategyGateDecidedAt: string | null;
+  strategyGateConsideredInBrdAt: string | null;
   experiments: ResearchExperiment[];
   projectType: string;
   baselineInitiative: { id: string; name: string } | null;
@@ -73,6 +76,7 @@ export default function InitiativeDetailPage() {
     analysis: string;
   } | null>(null);
   const [scoring, setScoring] = useState(false);
+  const [modelChoice, setModelChoice] = useModelChoice();
   const [featureName, setFeatureName] = useState("");
   const [generatingPrd, setGeneratingPrd] = useState<string | null>(null);
 
@@ -116,6 +120,7 @@ export default function InitiativeDetailPage() {
         impact: Number(rice.impact),
         confidence: Number(rice.confidence),
         effort: Number(rice.effort),
+        model: modelChoice,
       }),
     });
     const data = await res.json();
@@ -143,7 +148,7 @@ export default function InitiativeDetailPage() {
     const res = await fetch("/api/prd/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ featureId }),
+      body: JSON.stringify({ featureId, model: modelChoice }),
     });
     const data = await res.json();
     if (data.prd) {
@@ -334,9 +339,12 @@ export default function InitiativeDetailPage() {
             </div>
           ))}
         </div>
-        <button className="btn-primary" onClick={scoreRice} disabled={scoring}>
-          {scoring ? "Scoring…" : "Calculate RICE Score"}
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={scoring} />
+          <button className="btn-primary" onClick={scoreRice} disabled={scoring}>
+            {scoring ? "Scoring…" : "Calculate RICE Score"}
+          </button>
+        </div>
         {riceResult && (
           <div
             style={{
@@ -488,14 +496,21 @@ export default function InitiativeDetailPage() {
                     {f.regimeSummary.label}
                   </span>
                 </div>
-                <button
-                  className="btn-ghost"
-                  style={{ fontSize: 12, padding: "4px 12px" }}
-                  onClick={() => generatePrd(f.id)}
-                  disabled={generatingPrd === f.id}
-                >
-                  {generatingPrd === f.id ? "Generating…" : "Generate PRD →"}
-                </button>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <ModelChoiceSelect
+                    value={modelChoice}
+                    onChange={setModelChoice}
+                    disabled={generatingPrd === f.id}
+                  />
+                  <button
+                    className="btn-ghost"
+                    style={{ fontSize: 12, padding: "4px 12px" }}
+                    onClick={() => generatePrd(f.id)}
+                    disabled={generatingPrd === f.id}
+                  >
+                    {generatingPrd === f.id ? "Generating…" : "Generate PRD →"}
+                  </button>
+                </div>
               </div>
             ))}
           </div>

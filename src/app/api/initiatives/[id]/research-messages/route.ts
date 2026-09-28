@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { streamChat, type ChatMessage } from "@/lib/anthropic";
+import { streamChat, type ChatMessage, type ModelChoice } from "@/lib/llm";
 import { frameworks } from "@/lib/frameworks";
 import { extractProposedExperiments } from "@/lib/researchProposals";
 
@@ -10,7 +10,7 @@ export async function POST(
 ) {
   const { id } = await params;
   const body = await request.json();
-  const { content } = body as { content?: string };
+  const { content, model } = body as { content?: string; model?: ModelChoice };
 
   if (!content?.trim()) {
     return NextResponse.json({ error: "content is required" }, { status: 400 });
@@ -76,10 +76,12 @@ ${insightLines || "- none yet"}
 Experiments already planned/run for this initiative:
 ${experimentLines || "- none yet"}`;
 
-  const raw = await streamChat(systemPrompt, [
-    ...priorTurns,
-    { role: "user", content: content.trim() },
-  ]);
+  const raw = await streamChat(
+    systemPrompt,
+    [...priorTurns, { role: "user", content: content.trim() }],
+    undefined,
+    model
+  );
 
   const { prose, proposals } = extractProposedExperiments(raw);
 

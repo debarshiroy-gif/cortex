@@ -41,6 +41,11 @@ export interface ResearchExperiment {
   shareToken: string | null;
   discussionThread: string; // JSON {role: "pm"|"ai", content: string}[]
   surveyResponses: string | null;
+  extendedReport: string | null;
+  researchAccepted: boolean;
+  researchAcceptedBy: string | null;
+  researchAcceptedAt: string | null;
+  consideredInBrdAt: string | null;
   createdAt: string;
 }
 
@@ -54,5 +59,6 @@ export interface InitiativeResearchSummary {
   strategyGateNote: string | null;
   strategyGateDecidedBy: string | null;
   strategyGateDecidedAt: string | null;
+  strategyGateConsideredInBrdAt: string | null;
   experiments: ResearchExperiment[];
 }

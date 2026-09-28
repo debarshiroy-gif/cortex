@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import type { ResearchExperiment } from "./types";
 import type { PrototypeVersion } from "@/components/prototype/types";
 import { readabilityBand } from "@/lib/readability";
+import { ModelChoiceSelect } from "@/components/ModelChoiceSelect";
+import { useModelChoice } from "@/lib/useModelChoice";
 
 interface ABTestPanelProps {
   experiment: ResearchExperiment;
@@ -115,6 +117,7 @@ function ResultsView({ experiment, onUpdated }: ABTestPanelProps) {
   const [results, setResults] = useState<ABResult[] | null>(null);
   const [synthesizing, setSynthesizing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [modelChoice, setModelChoice] = useModelChoice();
 
   const shareUrl =
     typeof window !== "undefined" ? `${window.location.origin}/test/${experiment.shareToken}` : "";
@@ -127,7 +130,11 @@ function ResultsView({ experiment, onUpdated }: ABTestPanelProps) {
 
   async function synthesize() {
     setSynthesizing(true);
-    const res = await fetch(`/api/experiments/${experiment.id}/ab-synthesize`, { method: "POST" });
+    const res = await fetch(`/api/experiments/${experiment.id}/ab-synthesize`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: modelChoice }),
+    });
     setSynthesizing(false);
     if (res.ok) onUpdated((await res.json()) as ResearchExperiment);
   }
@@ -194,14 +201,17 @@ function ResultsView({ experiment, onUpdated }: ABTestPanelProps) {
       )}
 
       {totalResponses > 0 && !experiment.result && (
-        <button
-          className="btn-ghost"
-          style={{ fontSize: 12, alignSelf: "flex-start" }}
-          onClick={synthesize}
-          disabled={synthesizing}
-        >
-          {synthesizing ? "Synthesizing…" : "Synthesize with AI"}
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={synthesizing} />
+          <button
+            className="btn-ghost"
+            style={{ fontSize: 12 }}
+            onClick={synthesize}
+            disabled={synthesizing}
+          >
+            {synthesizing ? "Synthesizing…" : "Synthesize with AI"}
+          </button>
+        </div>
       )}
     </div>
   );

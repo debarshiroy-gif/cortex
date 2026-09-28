@@ -100,6 +100,16 @@ model Experiment {
   discussionThread String  @default("[]") // JSON {role: "pm"|"ai", content: string}[]
   surveyResponses  String? // raw pasted survey responses, before AI synthesis
 
+  // Build order 20: secondary-research accept gate + extended report
+  extendedReport     String? // secondary-research: full report behind the summary, markdown-exportable
+  researchAccepted   Boolean   @default(false) // secondary-research: PM has signed off on the findings
+  researchAcceptedBy String?
+  researchAcceptedAt DateTime?
+
+  // Set when a BRD generation run pulled this completed experiment in as
+  // prompt material — drives the "considered for BRD draft" UI badge.
+  consideredInBrdAt DateTime?
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -133,6 +143,9 @@ model Initiative {
   strategyGateNote      String?
   strategyGateDecidedBy String?
   strategyGateDecidedAt DateTime?
+  // Set when a BRD generation run pulled the strategy-gate decision in as
+  // prompt material — drives the "considered for BRD draft" UI badge.
+  strategyGateConsideredInBrdAt DateTime?
 
   // Build order 18: baselines — brownfield capture + enhancement-on-a-shipped-PRD
   projectType          String       @default("greenfield") // "greenfield" | "brownfield"
@@ -182,6 +195,10 @@ model MeetingNote {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Set when a BRD generation run pulled this note in as prompt material —
+  // drives the "considered for BRD draft" UI badge.
+  consideredInBrdAt DateTime?
+
   linkedInitiative Initiative? @relation(fields: [linkedInitiativeId], references: [id])
   linkedInsight    Insight?    @relation(fields: [linkedInsightId], references: [id])
 }
@@ -214,6 +231,10 @@ model BrdInput {
   addedBy      String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  // Set when a BRD generation run pulled this input in as prompt material —
+  // drives the "considered for BRD draft" UI badge.
+  consideredInBrdAt DateTime?
 
   initiative Initiative @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
 }

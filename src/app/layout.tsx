@@ -4,7 +4,7 @@ import { AppNav } from "@/components/AppNav";
 
 export const metadata: Metadata = {
   title: "Cortex",
-  description: "An operating system for the product-management loop, powered by Claude.",
+  description: "An operating system for the product-management loop, powered by AI.",
 };
 
 export default function RootLayout({

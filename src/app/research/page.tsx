@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { InsightCard } from "@/components/insights/InsightCard";
 import type { ResearchGateStatus } from "@/components/research/types";
+import { ModelChoiceSelect } from "@/components/ModelChoiceSelect";
+import { useModelChoice } from "@/lib/useModelChoice";
 
 const PRODUCT_ID = "seed-product";
 
@@ -72,6 +74,7 @@ export default function ResearchPage() {
 
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [initiatives, setInitiatives] = useState<InitiativeResearchRow[]>([]);
+  const [modelChoice, setModelChoice] = useModelChoice();
 
   useEffect(() => {
     fetch(`/api/personas?productId=${PRODUCT_ID}`)
@@ -119,12 +122,14 @@ export default function ResearchPage() {
     setCurrentInterviewId(interview.id);
     setSavingInterview(false);
 
-    // 2. Extract JTBD insights via Claude
+    // 2. Extract JTBD insights via AI
     setExtracting(true);
     setSaved(false);
     setExtracted([]);
     const extRes = await fetch(`/api/interviews/${interview.id}/extract`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: modelChoice }),
     });
     const extData = await extRes.json();
     setExtracted(extData.jobStatements ?? []);
@@ -180,7 +185,7 @@ export default function ResearchPage() {
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 700 }}>Research</h1>
           <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>
-            Paste interview notes → Claude extracts JTBD job statements → save
+            Paste interview notes → AI extracts JTBD job statements → save
             as insights → build an{" "}
             <a href="/research/ost">Opportunity Solution Tree</a>.
           </p>
@@ -280,18 +285,25 @@ export default function ResearchPage() {
               onChange={(e) => setNotes(e.target.value)}
               style={{ fontFamily: "inherit", resize: "vertical" }}
             />
-            <button
-              className="btn-primary"
-              style={{ marginTop: 12, width: "100%" }}
-              onClick={saveAndExtract}
-              disabled={savingInterview || extracting || !notes.trim() || !selectedPersonaId}
-            >
-              {savingInterview
-                ? "Saving…"
-                : extracting
-                ? "Claude is extracting JTBD insights…"
-                : "Extract JTBD Insights with Claude"}
-            </button>
+            <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center" }}>
+              <ModelChoiceSelect
+                value={modelChoice}
+                onChange={setModelChoice}
+                disabled={savingInterview || extracting}
+              />
+              <button
+                className="btn-primary"
+                style={{ flex: 1 }}
+                onClick={saveAndExtract}
+                disabled={savingInterview || extracting || !notes.trim() || !selectedPersonaId}
+              >
+                {savingInterview
+                  ? "Saving…"
+                  : extracting
+                  ? "AI is extracting JTBD insights…"
+                  : "Extract JTBD Insights with AI"}
+              </button>
+            </div>
           </div>
         </div>
 

@@ -26,6 +26,7 @@ export interface BrdInput {
   fileName: string | null;
   status: BrdInputStatus;
   addedBy: string | null;
+  consideredInBrdAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

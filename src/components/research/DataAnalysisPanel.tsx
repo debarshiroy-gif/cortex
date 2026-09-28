@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 import type { ResearchExperiment } from "./types";
+import { ModelChoiceSelect } from "@/components/ModelChoiceSelect";
+import { useModelChoice } from "@/lib/useModelChoice";
 
 interface DataAnalysisPanelProps {
   experiment: ResearchExperiment;
@@ -14,6 +16,7 @@ export function DataAnalysisPanel({ experiment, onUpdated }: DataAnalysisPanelPr
   const [fileContent, setFileContent] = useState(experiment.dataFileContent ?? "");
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modelChoice, setModelChoice] = useModelChoice();
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -33,7 +36,7 @@ export function DataAnalysisPanel({ experiment, onUpdated }: DataAnalysisPanelPr
     const res = await fetch(`/api/experiments/${experiment.id}/analyze-data`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fileName, fileContent }),
+      body: JSON.stringify({ fileName, fileContent, model: modelChoice }),
     });
     setAnalyzing(false);
     if (!res.ok) {
@@ -60,14 +63,17 @@ export function DataAnalysisPanel({ experiment, onUpdated }: DataAnalysisPanelPr
           {fileName && (
             <p style={{ fontSize: 11, color: "var(--text-muted)" }}>Selected: {fileName}</p>
           )}
-          <button
-            className="btn-ghost"
-            style={{ fontSize: 12, alignSelf: "flex-start" }}
-            onClick={analyze}
-            disabled={analyzing || !fileContent}
-          >
-            {analyzing ? "Analyzing…" : "Analyze with AI"}
-          </button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={analyzing} />
+            <button
+              className="btn-ghost"
+              style={{ fontSize: 12 }}
+              onClick={analyze}
+              disabled={analyzing || !fileContent}
+            >
+              {analyzing ? "Analyzing…" : "Analyze with AI"}
+            </button>
+          </div>
         </div>
       )}
       {error && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>{error}</p>}

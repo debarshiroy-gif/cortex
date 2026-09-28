@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { Requirement } from "./types";
+import { ModelChoiceSelect } from "@/components/ModelChoiceSelect";
+import { useModelChoice } from "@/lib/useModelChoice";
 
 interface VerifyGatePanelProps {
   requirement: Requirement;
@@ -17,12 +19,15 @@ export function VerifyGatePanel({ requirement, onUpdated }: VerifyGatePanelProps
   );
   const [signingOff, setSigningOff] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modelChoice, setModelChoice] = useModelChoice();
 
   async function runVerifyChecks() {
     setChecking(true);
     setError(null);
     const res = await fetch(`/api/requirements/${requirement.id}/verify-check`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: modelChoice }),
     });
     setChecking(false);
     if (!res.ok) {
@@ -80,9 +85,12 @@ export function VerifyGatePanel({ requirement, onUpdated }: VerifyGatePanelProps
         Verify gate
       </div>
 
-      <button className="btn-ghost" style={{ fontSize: 12 }} onClick={runVerifyChecks} disabled={checking}>
-        {checking ? "Running…" : "Run verify checks"}
-      </button>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={checking} />
+        <button className="btn-ghost" style={{ fontSize: 12 }} onClick={runVerifyChecks} disabled={checking}>
+          {checking ? "Running…" : "Run verify checks"}
+        </button>
+      </div>
 
       {issues && (
         <div style={{ marginTop: 8 }}>
@@ -118,7 +126,7 @@ export function VerifyGatePanel({ requirement, onUpdated }: VerifyGatePanelProps
           />
         </div>
         <button
-          className="btn-primary"
+          className="btn-success"
           style={{ flexShrink: 0 }}
           onClick={signOffAndRelease}
           disabled={signingOff}

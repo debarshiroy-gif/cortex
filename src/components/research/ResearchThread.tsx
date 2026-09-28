@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { ProposedExperimentCard } from "./ProposedExperimentCard";
 import type { ProposedExperiment, ResearchExperiment, ResearchMessage } from "./types";
+import { ModelChoiceSelect } from "@/components/ModelChoiceSelect";
+import { useModelChoice } from "@/lib/useModelChoice";
 
 interface ResearchThreadProps {
   initiativeId: string;
@@ -32,6 +34,7 @@ export function ResearchThread({
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modelChoice, setModelChoice] = useModelChoice();
 
   async function send(content: string) {
     if (!content.trim() || sending) return;
@@ -41,7 +44,7 @@ export function ResearchThread({
     const res = await fetch(`/api/initiatives/${initiativeId}/research-messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content, model: modelChoice }),
     });
     setSending(false);
 
@@ -64,7 +67,8 @@ export function ResearchThread({
       <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>Planning thread</h2>
 
       {messages.length === 0 && (
-        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center" }}>
+          <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={sending} />
           <button
             className="btn-ghost"
             style={{ fontSize: 12 }}
@@ -124,6 +128,10 @@ export function ResearchThread({
       </div>
 
       {error && <p style={{ color: "var(--danger)", fontSize: 12, marginBottom: 8 }}>{error}</p>}
+
+      <div style={{ marginBottom: 8 }}>
+        <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={sending} />
+      </div>
 
       <div style={{ display: "flex", gap: 8 }}>
         <textarea

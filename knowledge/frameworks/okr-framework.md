@@ -5,7 +5,7 @@
 
 Good KR test: could you achieve it without actually improving the product (e.g., by gaming a metric)? If yes, it's a bad KR.
 
-## How Claude should use this
+## How AI should use this
 When a user drafts an OKR, check whether key results are outcomes (user/business impact) vs. outputs (shipped features) and push back on output-framed KRs. Tie each KR to a Metric entity so progress can be tracked automatically.
 
 ## Prompt pattern

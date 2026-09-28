@@ -42,8 +42,17 @@ export async function GET(
       ``,
       ...stories.flatMap((s, i) => [
         `### Story ${i + 1}: ${s.title}${s.phase ? ` _(${s.phase})_` : ""}`,
+        s.persona ? `**As a:** ${s.persona}` : "",
+        ``,
         s.description,
         ``,
+        ...(s.background ? [`**Background:**`, s.background, ``] : []),
+        ...(s.linkedStoryTitles && s.linkedStoryTitles.length > 0
+          ? [`**Linked stories:** ${s.linkedStoryTitles.join(", ")}`, ``]
+          : []),
+        ...(s.logic ? [`**Logic:**`, s.logic, ``] : []),
+        ...(s.mapping ? [`**Mapping:**`, s.mapping, ``] : []),
+        ...(s.uiScreens ? [`**UI screens:**`, s.uiScreens, ``] : []),
         `**Acceptance Criteria:**`,
         ...s.acceptanceCriteria.map((c) => `- [ ] ${c}`),
         ``,

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import { ModelChoiceSelect } from "@/components/ModelChoiceSelect";
+import { useModelChoice } from "@/lib/useModelChoice";
 
 const PRODUCT_ID = "seed-product";
 
@@ -172,6 +174,7 @@ function OKRCard({ okr, onUpdated }: { okr: OKR; onUpdated: () => void }) {
   const [analysis, setAnalysis] = useState<KRAnalysisResult[]>([]);
   const [analysing, setAnalysing] = useState(false);
   const [analysisSummary, setAnalysisSummary] = useState<string | null>(null);
+  const [modelChoice, setModelChoice] = useModelChoice();
 
   async function analyse() {
     if (krs.length === 0) return;
@@ -179,7 +182,7 @@ function OKRCard({ okr, onUpdated }: { okr: OKR; onUpdated: () => void }) {
     const res = await fetch(`/api/okrs/${okr.id}/analyze`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ objective: okr.objective, keyResults: krs }),
+      body: JSON.stringify({ objective: okr.objective, keyResults: krs, model: modelChoice }),
     });
     const data = await res.json();
     setAnalysis(data.results ?? []);
@@ -238,14 +241,17 @@ function OKRCard({ okr, onUpdated }: { okr: OKR; onUpdated: () => void }) {
             <div style={{ fontSize: 11, color: "var(--text-muted)" }}>overall</div>
           </div>
           {krs.length > 0 && (
-            <button
-              className="btn-ghost"
-              style={{ fontSize: 12, padding: "4px 12px" }}
-              onClick={analyse}
-              disabled={analysing}
-            >
-              {analysing ? "Analysing…" : "Check KRs with Claude"}
-            </button>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={analysing} />
+              <button
+                className="btn-ghost"
+                style={{ fontSize: 12, padding: "4px 12px" }}
+                onClick={analyse}
+                disabled={analysing}
+              >
+                {analysing ? "Analysing…" : "Check KRs with AI"}
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -296,6 +302,7 @@ function NewOKRForm({ onCreated }: { onCreated: () => void }) {
   const [analysing, setAnalysing] = useState(false);
   const [analysis, setAnalysis] = useState<KRAnalysisResult[]>([]);
   const [analysisSummary, setAnalysisSummary] = useState<string | null>(null);
+  const [modelChoice, setModelChoice] = useModelChoice();
 
   function addKR() {
     if (!krDesc.trim() || !krTarget) return;
@@ -327,7 +334,7 @@ function NewOKRForm({ onCreated }: { onCreated: () => void }) {
     const res = await fetch(`/api/okrs/draft/analyze`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ objective, keyResults: krs }),
+      body: JSON.stringify({ objective, keyResults: krs, model: modelChoice }),
     });
     const data = await res.json();
     setAnalysis(data.results ?? []);
@@ -481,16 +488,19 @@ function NewOKRForm({ onCreated }: { onCreated: () => void }) {
           )}
 
           {krs.length > 0 && (
-            <button
-              className="btn-ghost"
-              style={{ marginTop: 10, fontSize: 12 }}
-              onClick={checkKRs}
-              disabled={analysing || !objective.trim()}
-            >
-              {analysing
-                ? "Checking…"
-                : `Check ${krs.length} KR${krs.length !== 1 ? "s" : ""} with Claude`}
-            </button>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10 }}>
+              <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={analysing} />
+              <button
+                className="btn-ghost"
+                style={{ fontSize: 12 }}
+                onClick={checkKRs}
+                disabled={analysing || !objective.trim()}
+              >
+                {analysing
+                  ? "Checking…"
+                  : `Check ${krs.length} KR${krs.length !== 1 ? "s" : ""} with AI`}
+              </button>
+            </div>
           )}
         </div>
 
@@ -539,7 +549,7 @@ export default function OKRsPage() {
     <div>
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>OKRs</h1>
       <p style={{ color: "var(--text-muted)", marginBottom: 32, fontSize: 13 }}>
-        Claude checks your key results and flags outputs vs. measurable outcomes.
+        AI checks your key results and flags outputs vs. measurable outcomes.
       </p>
 
       <NewOKRForm onCreated={load} />

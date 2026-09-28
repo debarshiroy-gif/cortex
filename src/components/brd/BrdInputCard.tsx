@@ -44,6 +44,11 @@ export function BrdInputCard({ input, onUpdated }: BrdInputCardProps) {
           >
             {input.status}
           </span>
+          {input.consideredInBrdAt && (
+            <span className="badge badge-verified" style={{ fontSize: 10 }}>
+              ✓ Considered for BRD draft
+            </span>
+          )}
         </div>
         {input.status === "suggested" && !editing && (
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>

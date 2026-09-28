@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { streamText } from "@/lib/anthropic";
+import { streamText, type ModelChoice } from "@/lib/llm";
 import { frameworks } from "@/lib/frameworks";
 import { recordAuditEvent } from "@/lib/auditTrail";
 
@@ -19,11 +19,12 @@ interface DraftResponse {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { featureId, regime, sourceText, actorName } = body as {
+  const { featureId, regime, sourceText, actorName, model } = body as {
     featureId?: string;
     regime?: string;
     sourceText?: string;
     actorName?: string;
+    model?: ModelChoice;
   };
 
   if (!featureId || !sourceText?.trim()) {
@@ -79,7 +80,7 @@ Respond in this exact JSON format (no markdown fences):
 }
 `.trim();
 
-  const raw = await streamText(systemPrompt, userMessage);
+  const raw = await streamText(systemPrompt, userMessage, undefined, model);
 
   let parsed: DraftResponse;
   try {
@@ -87,7 +88,7 @@ Respond in this exact JSON format (no markdown fences):
     parsed = JSON.parse(cleaned);
   } catch {
     return NextResponse.json(
-      { error: "Failed to parse Claude response", raw },
+      { error: "Failed to parse AI response", raw },
       { status: 502 }
     );
   }

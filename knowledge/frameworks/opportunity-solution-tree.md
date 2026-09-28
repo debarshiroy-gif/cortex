@@ -20,7 +20,7 @@ Rules:
 - Each opportunity can have multiple candidate solutions — don't jump to the first idea.
 - Solutions should be tied to a small experiment/test before big investment.
 
-## How Claude should use this
+## How AI should use this
 Given a target outcome and a list of insights (from the Interview/Insight entities), cluster insights into opportunities, then propose 2-3 candidate solutions per opportunity with a suggested cheap experiment to validate each. Render as a tree, not a flat list.
 
 ## Prompt pattern

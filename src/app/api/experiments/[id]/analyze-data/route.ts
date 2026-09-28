@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { streamText } from "@/lib/anthropic";
+import { streamText, type ModelChoice } from "@/lib/llm";
 import { frameworks } from "@/lib/frameworks";
 
 const MAX_FILE_CHARS = 100_000;
@@ -11,7 +11,11 @@ export async function POST(
 ) {
   const { id } = await params;
   const body = await request.json();
-  const { fileName, fileContent } = body as { fileName?: string; fileContent?: string };
+  const { fileName, fileContent, model } = body as {
+    fileName?: string;
+    fileContent?: string;
+    model?: ModelChoice;
+  };
 
   if (!fileContent?.trim()) {
     return NextResponse.json({ error: "fileContent is required" }, { status: 400 });
@@ -48,7 +52,7 @@ ${truncated}
 Analyze this as instructed.
   `.trim();
 
-  const result = await streamText(systemPrompt, userMessage);
+  const result = await streamText(systemPrompt, userMessage, undefined, model);
 
   const updated = await prisma.experiment.update({
     where: { id },

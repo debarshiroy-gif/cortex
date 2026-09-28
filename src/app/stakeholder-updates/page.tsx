@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ModelChoiceSelect } from "@/components/ModelChoiceSelect";
+import { useModelChoice } from "@/lib/useModelChoice";
 
 const PRODUCT_ID = "seed-product";
 
@@ -39,6 +41,7 @@ export default function StakeholderUpdatesPage() {
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState<GeneratedDraft | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [modelChoice, setModelChoice] = useModelChoice();
 
   async function loadUpdates() {
     const res = await fetch("/api/stakeholder-updates");
@@ -64,7 +67,11 @@ export default function StakeholderUpdatesPage() {
       const res = await fetch("/api/stakeholder-updates/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ period, releaseId: selectedReleaseId || undefined }),
+        body: JSON.stringify({
+          period,
+          releaseId: selectedReleaseId || undefined,
+          model: modelChoice,
+        }),
       });
       const data = await res.json();
       setDraft(data);
@@ -108,7 +115,7 @@ export default function StakeholderUpdatesPage() {
 
       {showForm && (
         <div className="card" style={{ marginBottom: 24 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>Generate with Claude</h2>
+          <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>Generate with AI</h2>
           <form onSubmit={handleGenerate} style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 20 }}>
             <div style={{ flex: "1 1 180px" }}>
               <label style={{ display: "block", fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>
@@ -137,14 +144,15 @@ export default function StakeholderUpdatesPage() {
                 ))}
               </select>
             </div>
+            <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={generating} />
             <button className="btn" type="submit" disabled={generating}>
-              {generating ? "Generating…" : "Generate with Claude"}
+              {generating ? "Generating…" : "Generate with AI"}
             </button>
           </form>
 
           {generating && (
             <div style={{ color: "var(--text-muted)", fontSize: 13 }}>
-              Claude is pulling live OKR and release data…
+              AI is pulling live OKR and release data…
             </div>
           )}
 

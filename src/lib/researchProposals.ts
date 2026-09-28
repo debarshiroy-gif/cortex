@@ -10,7 +10,7 @@ interface ExtractedReply {
   proposals: ProposedExperiment[];
 }
 
-// Claude's reply in the research-planning thread is conversational prose with an
+// AI's reply in the research-planning thread is conversational prose with an
 // *optional* trailing fenced JSON block — only present when it has concrete,
 // nameable experiments to propose, not on every turn (e.g. a clarifying question).
 export function extractProposedExperiments(raw: string): ExtractedReply {

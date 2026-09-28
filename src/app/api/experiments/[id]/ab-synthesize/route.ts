@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { streamText } from "@/lib/anthropic";
+import { streamText, type ModelChoice } from "@/lib/llm";
 import { frameworks } from "@/lib/frameworks";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const body = await request.json().catch(() => ({}));
+  const { model } = body as { model?: ModelChoice };
 
   const experiment = await prisma.experiment.findUnique({ where: { id } });
   if (!experiment) {
@@ -50,7 +52,7 @@ export async function POST(
 
 ${perVersion.join("\n\n")}`;
 
-  const text = await streamText(frameworks.abTestSynthesis(), userMessage, 4096);
+  const text = await streamText(frameworks.abTestSynthesis(), userMessage, 4096, model);
 
   const updated = await prisma.experiment.update({
     where: { id },

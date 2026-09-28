@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ModelChoiceSelect } from "@/components/ModelChoiceSelect";
+import { useModelChoice } from "@/lib/useModelChoice";
 
 const PRODUCT_ID = "seed-product";
 
@@ -273,6 +275,7 @@ export default function OSTPage() {
   const [error, setError] = useState<string | null>(null);
   const [okrs, setOkrs] = useState<OKR[]>([]);
   const [insightCount, setInsightCount] = useState<number | null>(null);
+  const [modelChoice, setModelChoice] = useModelChoice();
 
   useEffect(() => {
     fetch(`/api/okrs?productId=${PRODUCT_ID}`)
@@ -295,7 +298,7 @@ export default function OSTPage() {
     const res = await fetch("/api/ost/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ outcome, productId: PRODUCT_ID }),
+      body: JSON.stringify({ outcome, productId: PRODUCT_ID, model: modelChoice }),
     });
     const data = await res.json();
 
@@ -331,7 +334,7 @@ export default function OSTPage() {
           Opportunity Solution Tree
         </h1>
         <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>
-          Pick a target outcome. Claude clusters your insights into opportunities
+          Pick a target outcome. AI clusters your insights into opportunities
           and proposes solutions with experiments.
           {insightCount !== null && (
             <span>
@@ -385,13 +388,16 @@ export default function OSTPage() {
           </div>
         )}
 
-        <button
-          className="btn-primary"
-          onClick={generate}
-          disabled={generating || !outcome.trim()}
-        >
-          {generating ? "Building OST with Claude…" : "Generate Opportunity Solution Tree"}
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={generating} />
+          <button
+            className="btn-primary"
+            onClick={generate}
+            disabled={generating || !outcome.trim()}
+          >
+            {generating ? "Building OST with AI…" : "Generate Opportunity Solution Tree"}
+          </button>
+        </div>
 
         {insightCount === 0 && (
           <div

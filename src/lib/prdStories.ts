@@ -1,6 +1,21 @@
 export interface PrdStory {
   title: string;
+  // The role this story is written for, e.g. "Operations Manager of Credit Saison" —
+  // paired with description's opening "As a <persona>, I want to..." sentence.
+  persona: string;
+  // Context this story assumes, grounded in a specific cited section of the PRD content
+  // above (the document that becomes this story's Epic) — omit if none.
+  background?: string;
+  // Exact titles of other stories in this same breakdown, listed earlier in the array,
+  // that this story depends on or follows in sequence — omit if none.
+  linkedStoryTitles?: string[];
   description: string;
+  // Business rules, validation, or transformation logic this story implements — omit if none.
+  logic?: string;
+  // Data mapping between systems/columns (source -> destination) — omit if none.
+  mapping?: string;
+  // Which UI screen(s), and which part of the screen, this story covers — omit if none.
+  uiScreens?: string;
   acceptanceCriteria: string[];
   phase?: string;
 }

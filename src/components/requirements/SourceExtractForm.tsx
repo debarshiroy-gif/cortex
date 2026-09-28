@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { Regime } from "./RegimeWizard";
 import type { Requirement } from "./types";
+import { ModelChoiceSelect } from "@/components/ModelChoiceSelect";
+import { useModelChoice } from "@/lib/useModelChoice";
 
 interface SourceExtractFormProps {
   featureId: string;
@@ -21,6 +23,7 @@ export function SourceExtractForm({
   const [actorName, setActorName] = useState("");
   const [extracting, setExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modelChoice, setModelChoice] = useModelChoice();
 
   async function extract() {
     if (!sourceText.trim()) {
@@ -37,6 +40,7 @@ export function SourceExtractForm({
         regime,
         sourceText,
         actorName: actorName || undefined,
+        model: modelChoice,
       }),
     });
     setExtracting(false);
@@ -66,7 +70,7 @@ export function SourceExtractForm({
       </div>
 
       <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
-        Paste expert interview notes or source/regulation text. Claude will split it
+        Paste expert interview notes or source/regulation text. AI will split it
         into atomic requirements, draft edge cases, and flag any acceptance criteria
         that would be vague or untestable.
       </p>
@@ -88,7 +92,8 @@ export function SourceExtractForm({
 
         {error && <p style={{ color: "var(--danger)", fontSize: 13 }}>{error}</p>}
 
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={extracting} />
           <button className="btn-primary" onClick={extract} disabled={extracting}>
             {extracting ? "Extracting…" : "Extract Requirements"}
           </button>

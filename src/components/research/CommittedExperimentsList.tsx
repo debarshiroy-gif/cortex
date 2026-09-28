@@ -83,6 +83,11 @@ function ExperimentRow({
             <span style={{ fontSize: 13, fontWeight: 600 }}>
               {METHOD_LABEL[experiment.method] ?? experiment.method}
             </span>
+            {experiment.consideredInBrdAt && (
+              <span className="badge badge-verified" style={{ fontSize: 10 }}>
+                ✓ Considered for BRD draft
+              </span>
+            )}
           </div>
           {experiment.hypothesis && (
             <p style={{ fontSize: 12, marginBottom: 2 }}>{experiment.hypothesis}</p>

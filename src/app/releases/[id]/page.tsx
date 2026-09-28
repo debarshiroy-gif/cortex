@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
+import { ModelChoiceSelect } from "@/components/ModelChoiceSelect";
+import { useModelChoice } from "@/lib/useModelChoice";
 
 const tierColors: Record<string, { bg: string; color: string }> = {
   major: { bg: "#fee2e2", color: "#991b1b" },
@@ -69,6 +71,7 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
   const [selectedFeatureId, setSelectedFeatureId] = useState("");
   const [generatingChecklist, setGeneratingChecklist] = useState(false);
   const [addingFeature, setAddingFeature] = useState(false);
+  const [modelChoice, setModelChoice] = useModelChoice();
 
   async function loadRelease() {
     const res = await fetch(`/api/releases/${id}`);
@@ -109,7 +112,11 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
 
   async function handleGenerateChecklist() {
     setGeneratingChecklist(true);
-    const res = await fetch(`/api/releases/${id}/checklist`, { method: "POST" });
+    const res = await fetch(`/api/releases/${id}/checklist`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: modelChoice }),
+    });
     const data = await res.json();
     setRelease((prev) => prev ? { ...prev, checklist: data.checklist } : prev);
     setGeneratingChecklist(false);
@@ -209,14 +216,17 @@ export default function ReleaseDetailPage({ params }: { params: Promise<{ id: st
       <div className="card">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <h2 style={{ fontSize: 16, fontWeight: 600 }}>Launch Checklist</h2>
-          <button className="btn" onClick={handleGenerateChecklist} disabled={generatingChecklist}>
-            {generatingChecklist ? "Generating…" : release.checklist ? "Regenerate" : "Generate Checklist"}
-          </button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={generatingChecklist} />
+            <button className="btn" onClick={handleGenerateChecklist} disabled={generatingChecklist}>
+              {generatingChecklist ? "Generating…" : release.checklist ? "Regenerate" : "Generate Checklist"}
+            </button>
+          </div>
         </div>
 
         {generatingChecklist && (
           <div style={{ color: "var(--text-muted)", fontSize: 13 }}>
-            Claude is generating your {release.tier} launch checklist…
+            AI is generating your {release.tier} launch checklist…
           </div>
         )}
 

@@ -8,7 +8,7 @@
 5. **Asks** — anything you need from leadership/other teams (decisions, resources)
 6. **Next period preview**
 
-## How Claude should use this
+## How AI should use this
 Generate this update by pulling live data from the Metric/OKR/Release entities rather than asking the user to re-type numbers. Keep the TL;DR genuinely short — this is the section busy executives actually read. Don't bury risks; a good update surfaces them clearly rather than softening them into wins.
 
 ## Prompt pattern

@@ -11,7 +11,7 @@ Examples: Airbnb — nights booked. Spotify — time spent listening. Slack — 
 
 NSM is usually supported by 2-4 **input metrics** (things teams can directly influence that drive the NSM) and **guardrail metrics** (things that shouldn't regress, e.g., churn, latency).
 
-## How Claude should use this
+## How AI should use this
 When helping define a NSM, ask what value the product delivers to the user (not the business), propose 2-3 candidate NSMs, and stress-test each against the "customer value + leading indicator" criteria. Then propose input metrics that ladder up to it.
 
 ## Prompt pattern

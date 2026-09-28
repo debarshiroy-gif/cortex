@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import type { MeetingNote } from "./types";
+import { ModelChoiceSelect } from "@/components/ModelChoiceSelect";
+import { useModelChoice } from "@/lib/useModelChoice";
 
 interface Persona {
   id: string;
@@ -37,6 +39,7 @@ export function MeetingNoteExtract({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modelChoice, setModelChoice] = useModelChoice();
 
   useEffect(() => {
     if (!open || personas.length > 0) return;
@@ -56,18 +59,35 @@ export function MeetingNoteExtract({
     setError(null);
     setExtracting(true);
 
-    const interview = await fetch("/api/interviews", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ personaId, notes: note.rawContent }),
-    }).then((r) => r.json());
-    setInterviewId(interview.id);
+    try {
+      const interviewRes = await fetch("/api/interviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ personaId, notes: note.rawContent }),
+      });
+      const interview = await interviewRes.json();
+      if (!interviewRes.ok) {
+        setError(interview.error ?? "Failed to create interview from this note");
+        return;
+      }
+      setInterviewId(interview.id);
 
-    const extractRes = await fetch(`/api/interviews/${interview.id}/extract`, {
-      method: "POST",
-    }).then((r) => r.json());
-    setExtracted(extractRes.jobStatements ?? []);
-    setExtracting(false);
+      const extractResRaw = await fetch(`/api/interviews/${interview.id}/extract`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: modelChoice }),
+      });
+      const extractRes = await extractResRaw.json();
+      if (!extractResRaw.ok) {
+        setError(extractRes.error ?? "Failed to extract insights");
+        return;
+      }
+      setExtracted(extractRes.jobStatements ?? []);
+    } catch {
+      setError("Failed to reach the server. Please retry.");
+    } finally {
+      setExtracting(false);
+    }
   }
 
   async function saveInsights() {
@@ -140,8 +160,9 @@ export function MeetingNoteExtract({
                   </option>
                 ))}
               </select>
+              <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={extracting} />
               <button className="btn-primary" style={{ fontSize: 12 }} onClick={extract} disabled={extracting}>
-                {extracting ? "Extracting…" : "Extract with Claude"}
+                {extracting ? "Extracting…" : "Extract with AI"}
               </button>
             </>
           )}

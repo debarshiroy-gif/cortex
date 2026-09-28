@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { streamText } from "@/lib/anthropic";
+import { streamText, type ModelChoice } from "@/lib/llm";
 import { frameworks } from "@/lib/frameworks";
 
 export async function POST(
@@ -9,7 +9,7 @@ export async function POST(
 ) {
   const { id } = await params;
   const body = await request.json();
-  const { responses } = body as { responses?: string };
+  const { responses, model } = body as { responses?: string; model?: ModelChoice };
 
   if (!responses?.trim()) {
     return NextResponse.json({ error: "responses is required" }, { status: 400 });
@@ -42,7 +42,7 @@ ${responses.trim()}
 Analyze this as instructed.
   `.trim();
 
-  const result = await streamText(frameworks.surveySynthesis(), userMessage);
+  const result = await streamText(frameworks.surveySynthesis(), userMessage, undefined, model);
 
   const updated = await prisma.experiment.update({
     where: { id },

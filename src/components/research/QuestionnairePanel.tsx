@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { ResearchExperiment } from "./types";
 import { DiscussionThread } from "./DiscussionThread";
+import { ModelChoiceSelect } from "@/components/ModelChoiceSelect";
+import { useModelChoice } from "@/lib/useModelChoice";
 
 interface QuestionnairePanelProps {
   experiment: ResearchExperiment;
@@ -18,12 +20,15 @@ export function QuestionnairePanel({ experiment, onUpdated }: QuestionnairePanel
   const [responses, setResponses] = useState(experiment.surveyResponses ?? "");
   const [synthesizing, setSynthesizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modelChoice, setModelChoice] = useModelChoice();
 
   async function draft() {
     setDrafting(true);
     setError(null);
     const res = await fetch(`/api/experiments/${experiment.id}/draft-outreach`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: modelChoice }),
     });
     setDrafting(false);
     if (!res.ok) {
@@ -66,7 +71,7 @@ export function QuestionnairePanel({ experiment, onUpdated }: QuestionnairePanel
     const res = await fetch(`/api/experiments/${experiment.id}/synthesize-survey`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ responses }),
+      body: JSON.stringify({ responses, model: modelChoice }),
     });
     setSynthesizing(false);
     if (!res.ok) {
@@ -85,14 +90,17 @@ export function QuestionnairePanel({ experiment, onUpdated }: QuestionnairePanel
           onUpdated={onUpdated}
           label="Discuss success metric with AI"
         />
-        <button
-          className="btn-ghost"
-          style={{ fontSize: 12, marginTop: 8 }}
-          onClick={draft}
-          disabled={drafting}
-        >
-          {drafting ? "Drafting…" : "Draft questionnaire with AI"}
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
+          <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={drafting} />
+          <button
+            className="btn-ghost"
+            style={{ fontSize: 12 }}
+            onClick={draft}
+            disabled={drafting}
+          >
+            {drafting ? "Drafting…" : "Draft questionnaire with AI"}
+          </button>
+        </div>
         {error && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>{error}</p>}
       </div>
     );
@@ -174,14 +182,17 @@ export function QuestionnairePanel({ experiment, onUpdated }: QuestionnairePanel
             onChange={(e) => setResponses(e.target.value)}
             style={{ fontSize: 12 }}
           />
-          <button
-            className="btn-primary"
-            style={{ fontSize: 12, alignSelf: "flex-start" }}
-            onClick={synthesize}
-            disabled={synthesizing || !responses.trim()}
-          >
-            {synthesizing ? "Synthesizing…" : "Synthesize with AI"}
-          </button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={synthesizing} />
+            <button
+              className="btn-primary"
+              style={{ fontSize: 12 }}
+              onClick={synthesize}
+              disabled={synthesizing || !responses.trim()}
+            >
+              {synthesizing ? "Synthesizing…" : "Synthesize with AI"}
+            </button>
+          </div>
           {error && <p style={{ color: "var(--danger)", fontSize: 12 }}>{error}</p>}
         </div>
       )}

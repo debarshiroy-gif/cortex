@@ -15,7 +15,7 @@
 - [ ] External announcement drafted (blog/email/in-app)
 - [ ] Post-launch review scheduled (usually 2 weeks out)
 
-## How Claude should use this
+## How AI should use this
 Given a feature and its tier, generate a checklist scoped to that tier — don't generate a Tier 1 checklist for a Tier 3 patch. Pull in the actual feature name, metrics, and audience from the Feature/Release entities rather than leaving placeholders.
 
 ## Prompt pattern

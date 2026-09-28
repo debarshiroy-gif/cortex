@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { streamText } from "@/lib/anthropic";
+import { streamText, type ModelChoice } from "@/lib/llm";
 import { frameworks } from "@/lib/frameworks";
 import { getInitiativeResearchFindings } from "@/lib/researchFindings";
 import { extractPrdStories } from "@/lib/prdStories";
@@ -8,10 +8,14 @@ import { stripHtml } from "@/lib/readability";
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { featureId, initiativeId } = body as { featureId?: string; initiativeId?: string };
+  const { featureId, initiativeId, model } = body as {
+    featureId?: string;
+    initiativeId?: string;
+    model?: ModelChoice;
+  };
 
   if (initiativeId) {
-    return generateInitiativePrd(initiativeId);
+    return generateInitiativePrd(initiativeId, model);
   }
 
   if (!featureId) {
@@ -70,7 +74,7 @@ ${
 Draft a complete PRD using the template structure. Mark any inferred sections with "ASSUMPTION:" so the PM can review them.
   `.trim();
 
-  const prdContent = await streamText(systemPrompt, userMessage);
+  const prdContent = await streamText(systemPrompt, userMessage, undefined, model);
 
   // Upsert the PRD record
   const prd = await prisma.pRD.upsert({
@@ -82,7 +86,7 @@ Draft a complete PRD using the template structure. Mark any inferred sections wi
   return NextResponse.json({ prd, content: prdContent });
 }
 
-async function generateInitiativePrd(initiativeId: string) {
+async function generateInitiativePrd(initiativeId: string, model?: ModelChoice) {
   const initiative = await prisma.initiative.findUnique({
     where: { id: initiativeId },
     include: { product: true },
@@ -151,7 +155,7 @@ ${prototypeSummaries.length > 0 ? prototypeSummaries.join("\n\n") : "No prototyp
 Draft the PRD as instructed.
   `.trim();
 
-  const raw = await streamText(frameworks.prdInitiative(), userMessage, 12000);
+  const raw = await streamText(frameworks.prdInitiative(), userMessage, 12000, model);
   const { content, stories } = extractPrdStories(raw);
 
   const prd = await prisma.pRD.upsert({

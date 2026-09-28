@@ -8,6 +8,8 @@ import { SOURCE_TEAM_LABEL, type BrdInput, type SourceTeam } from "@/components/
 import { useGreenfieldFlow } from "@/components/flow/useGreenfieldFlow";
 import { GreenfieldFlowBar } from "@/components/flow/GreenfieldFlowBar";
 import { FlowStepFooter } from "@/components/flow/FlowStepFooter";
+import { ModelChoiceSelect } from "@/components/ModelChoiceSelect";
+import { useModelChoice } from "@/lib/useModelChoice";
 
 interface InitiativeHeader {
   id: string;
@@ -35,6 +37,7 @@ export default function BrdInitiativePage() {
   const [draftContent, setDraftContent] = useState("");
   const [savingBrd, setSavingBrd] = useState(false);
   const [brdError, setBrdError] = useState<string | null>(null);
+  const [modelChoice, setModelChoice] = useModelChoice();
 
   useEffect(() => {
     fetch(`/api/initiatives/${initiativeId}`)
@@ -57,7 +60,7 @@ export default function BrdInitiativePage() {
     const res = await fetch("/api/brd/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ initiativeId }),
+      body: JSON.stringify({ initiativeId, model: modelChoice }),
     });
     setGenerating(false);
     if (!res.ok) {
@@ -68,6 +71,10 @@ export default function BrdInitiativePage() {
     setBrd((await res.json()) as Brd);
     setEditingBrd(false);
     refreshFlow();
+
+    fetch(`/api/brd-inputs?initiativeId=${initiativeId}`)
+      .then((r) => r.json())
+      .then(setInputs);
   }
 
   async function saveBrd() {
@@ -135,6 +142,7 @@ export default function BrdInitiativePage() {
               >
                 Edit
               </button>
+              <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={generating} />
               <button className="btn-ghost" style={{ fontSize: 12 }} onClick={generateBrd} disabled={generating}>
                 {generating ? "Regenerating…" : "Regenerate with AI"}
               </button>
@@ -150,9 +158,12 @@ export default function BrdInitiativePage() {
               No draft yet. Cortex will pull in completed strategy-gate experiments and any
               approved stakeholder input below.
             </p>
-            <button className="btn-primary" onClick={generateBrd} disabled={generating}>
-              {generating ? "Generating…" : "Generate BRD"}
-            </button>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <ModelChoiceSelect value={modelChoice} onChange={setModelChoice} disabled={generating} />
+              <button className="btn-primary" onClick={generateBrd} disabled={generating}>
+                {generating ? "Generating…" : "Generate BRD"}
+              </button>
+            </div>
           </div>
         )}
 

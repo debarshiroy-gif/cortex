@@ -24,6 +24,8 @@ const NOTETAKER_LABEL: Record<string, string> = {
 
 export function MeetingNoteCard({ note, productId, onUpdated }: MeetingNoteCardProps) {
   const [saving, setSaving] = useState(false);
+  const [addingContent, setAddingContent] = useState(false);
+  const [contentDraft, setContentDraft] = useState("");
   const attendees = (() => {
     try {
       const parsed = JSON.parse(note.attendees);
@@ -44,6 +46,21 @@ export function MeetingNoteCard({ note, productId, onUpdated }: MeetingNoteCardP
     if (res.ok) onUpdated((await res.json()) as MeetingNote);
   }
 
+  async function saveContent() {
+    if (!contentDraft.trim()) return;
+    setSaving(true);
+    const res = await fetch(`/api/meeting-notes/${note.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rawContent: contentDraft }),
+    });
+    setSaving(false);
+    if (res.ok) {
+      onUpdated((await res.json()) as MeetingNote);
+      setAddingContent(false);
+    }
+  }
+
   return (
     <div className="card" style={{ padding: "12px 16px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
@@ -56,6 +73,11 @@ export function MeetingNoteCard({ note, productId, onUpdated }: MeetingNoteCardP
           >
             {note.status}
           </span>
+          {note.consideredInBrdAt && (
+            <span className="badge badge-verified" style={{ fontSize: 10 }}>
+              ✓ Considered for BRD draft
+            </span>
+          )}
           {note.relevanceScore != null && (
             <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
               relevance {note.relevanceScore.toFixed(2)}
@@ -114,12 +136,53 @@ export function MeetingNoteCard({ note, productId, onUpdated }: MeetingNoteCardP
           <p style={{ fontSize: 12, color: "var(--success)", marginTop: 8 }}>
             ✓ Linked to an insight
           </p>
-        ) : (
+        ) : note.rawContent.trim() ? (
           <MeetingNoteExtract
             note={note}
             productId={productId}
             onLinked={(insightId) => onUpdated({ ...note, linkedInsightId: insightId })}
           />
+        ) : addingContent ? (
+          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+            <textarea
+              rows={4}
+              placeholder="Paste the meeting notes or transcript text here…"
+              value={contentDraft}
+              onChange={(e) => setContentDraft(e.target.value)}
+            />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                className="btn-primary"
+                style={{ fontSize: 12 }}
+                onClick={saveContent}
+                disabled={saving || !contentDraft.trim()}
+              >
+                {saving ? "Saving…" : "Save content"}
+              </button>
+              <button
+                className="btn-ghost"
+                style={{ fontSize: 12 }}
+                onClick={() => setAddingContent(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ marginTop: 8 }}>
+            <p style={{ fontSize: 12, color: "var(--text-muted)" }}>
+              No content to extract from yet — this note only stores a link.
+            </p>
+            <div style={{ display: "flex", gap: 8, marginTop: 4, alignItems: "center", flexWrap: "wrap" }}>
+              <button
+                className="btn-ghost"
+                style={{ fontSize: 12 }}
+                onClick={() => setAddingContent(true)}
+              >
+                Paste content manually
+              </button>
+            </div>
+          </div>
         ))}
     </div>
   );

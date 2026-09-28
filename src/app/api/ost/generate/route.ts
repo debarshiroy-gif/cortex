@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { streamText } from "@/lib/anthropic";
+import { streamText, type ModelChoice } from "@/lib/llm";
 import { frameworks } from "@/lib/frameworks";
 
 type Solution = {
@@ -23,7 +23,11 @@ type OSTResponse = {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { outcome, productId } = body as { outcome: string; productId: string };
+  const { outcome, productId, model } = body as {
+    outcome: string;
+    productId: string;
+    model?: ModelChoice;
+  };
 
   if (!outcome?.trim() || !productId) {
     return NextResponse.json(
@@ -89,7 +93,7 @@ Respond in this exact JSON format (no markdown fences):
 }
 `.trim();
 
-  const raw = await streamText(systemPrompt, userMessage);
+  const raw = await streamText(systemPrompt, userMessage, undefined, model);
 
   let parsed: OSTResponse;
   try {
@@ -97,7 +101,7 @@ Respond in this exact JSON format (no markdown fences):
     parsed = JSON.parse(cleaned);
   } catch {
     return NextResponse.json(
-      { error: "Failed to parse Claude response", raw },
+      { error: "Failed to parse AI response", raw },
       { status: 502 }
     );
   }

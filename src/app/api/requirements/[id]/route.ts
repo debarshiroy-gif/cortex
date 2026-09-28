@@ -97,7 +97,7 @@ export async function PATCH(
   }
 
   // Hard rule: advancing to "release" requires a human sign-off — an explicit
-  // approval flag plus a signer name and date. Claude never signs off on a human's
+  // approval flag plus a signer name and date. AI never signs off on a human's
   // behalf (see the Verify gate's "Human owns" column).
   const nextSignOffApproved =
     body.signOffApproved !== undefined

@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { streamText } from "@/lib/anthropic";
+import { streamText, type ModelChoice } from "@/lib/llm";
 import { frameworks } from "@/lib/frameworks";
 
 const PRODUCT_ID = "seed-product";
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { period, releaseId } = body;
+  const { period, releaseId, model } = body as {
+    period?: string;
+    releaseId?: string;
+    model?: ModelChoice;
+  };
 
   const [recentReleases, okrs] = await Promise.all([
     prisma.release.findMany({
@@ -80,7 +84,7 @@ Draft a stakeholder update following the framework. Return valid JSON with this 
 
 Be direct. Do not soften risks. TL;DR must be 2-3 sentences only.`;
 
-  const raw = await streamText(systemPrompt, userMessage);
+  const raw = await streamText(systemPrompt, userMessage, undefined, model);
   const cleaned = raw
     .replace(/^```json\s*/m, "")
     .replace(/^```\s*/m, "")

@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { streamText } from "@/lib/anthropic";
+import { streamText, type ModelChoice } from "@/lib/llm";
 import { frameworks } from "@/lib/frameworks";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const body = await request.json().catch(() => ({}));
+  const { model } = body as { model?: ModelChoice };
 
   const gapPrd = await prisma.pRD.findUnique({
     where: { id },
@@ -47,7 +49,7 @@ ${gapPrd.content}
 Merge the gap into the master as instructed.
   `.trim();
 
-  const merged = await streamText(frameworks.prdMerge(), userMessage, 12000);
+  const merged = await streamText(frameworks.prdMerge(), userMessage, 12000, model);
 
   const [updatedMaster] = await prisma.$transaction([
     prisma.pRD.update({

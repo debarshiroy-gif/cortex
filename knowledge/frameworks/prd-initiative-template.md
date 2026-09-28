@@ -70,13 +70,35 @@ JSON block, in exactly this shape:
   "stories": [
     {
       "title": "<short, JIRA-summary-style title>",
-      "description": "<what this story delivers, 2-4 sentences, JIRA-description style>",
+      "persona": "<the role this is written for, e.g. 'Operations Manager of Credit Saison'>",
+      "background": "<context this story assumes, drawn from — and citing — a specific section of the 8-section PRD document above (e.g. 'From Background and Context: ...' or 'From Business/Functional Objective (Operations): ...'); this document is the future Epic, so ground this in it, don't invent context that isn't there — omit this key if there's genuinely none>",
+      "linkedStoryTitles": ["<exact title of an earlier story in THIS SAME stories array that this one depends on or follows in sequence — omit this key if there's genuinely none>"],
+      "description": "<start with the full user-story sentence: 'As a <persona>, I want to <goal>, so that <benefit>.' Then 2-4 more sentences of JIRA-description-style detail>",
+      "logic": "<the specific business rules, validation, or transformation/calculation logic this story implements — omit this key if the story has no logic dimension>",
+      "mapping": "<data mapping between systems or columns, e.g. 'source.customer_email -> CRM.contact.email'; name the actual fields/tables the BRD or prototype implies — omit this key if there's no mapping dimension>",
+      "uiScreens": "<which screen(s) this touches and which specific part of the screen (e.g. 'Checkout screen — the payment method selector and the order summary panel'), pulled from the prototype summary if one exists — omit this key if this story has no UI dimension>",
       "acceptanceCriteria": ["<testable condition>", "..."],
       "phase": "<the phase name this belongs to, if phases exist — omit this key otherwise>"
     }
   ]
 }
 ```
+
+Rules for filling these fields:
+- **persona** and **description** are required for every story — always name a specific role
+  (job title + company, not just "user") and always open the description with the full
+  "As a &lt;persona&gt;, I want to..., so that..." sentence.
+- **background**, **linkedStoryTitles**, **logic**, and **uiScreens** are conditional — include
+  each only when that dimension genuinely applies to the story; omit the key entirely rather than
+  writing "N/A" or padding with a generic sentence.
+- **background** has exactly two allowed sources: a specific section of the PRD document above,
+  or an earlier story's title via `linkedStoryTitles`. Never state background that isn't
+  traceable to one of these two sources.
+- **linkedStoryTitles** can only reference stories that already appear earlier in this same
+  `stories` array — never a story's own title, never a story listed later, never a title that
+  isn't in this array. Build the array in the dependency order this constraint implies.
+- **acceptanceCriteria** must always be present and non-empty — every story needs explicit,
+  testable acceptance criteria, called out as their own list, separate from the description.
 
 Every story must be independently workable — small enough for one sprint, specific enough that
 a PM doesn't have to re-derive scope from the prose above. Do not create a story for

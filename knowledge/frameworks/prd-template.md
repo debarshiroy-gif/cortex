@@ -11,7 +11,7 @@
 8. **Risks & edge cases**
 9. **Launch plan** — tier, rollout strategy, success metrics to watch post-launch.
 
-## How Claude should use this
+## How AI should use this
 Given a one-line feature idea plus context from the Initiative/Persona/Insight it's tied to, draft a full PRD in this structure. Be explicit about what's inferred vs. what needs the PM to confirm — mark inferred sections with "ASSUMPTION:" so they're easy to find and correct. Keep acceptance criteria testable, not vague ("works well" is not testable; "loads in under 2s for 95th percentile" is).
 
 ## Prompt pattern

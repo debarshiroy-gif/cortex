@@ -88,6 +88,11 @@ export function StrategyGateBanner({ initiative, onUpdated }: StrategyGateBanner
             >
               Strategy gate: {DECISION_LABEL[decision]}
             </span>
+            {initiative.strategyGateConsideredInBrdAt && (
+              <span className="badge badge-verified" style={{ fontSize: 10 }}>
+                ✓ Considered for BRD draft
+              </span>
+            )}
             {initiative.strategyGateDecidedAt && (
               <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
                 by {initiative.strategyGateDecidedBy} ·{" "}
